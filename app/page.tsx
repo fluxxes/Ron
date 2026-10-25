@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { Product, CartItem, Order } from './types/coffee';
+import { PRODUCTS } from './data/products';
 import Navbar from './components/Navbar';
 import ProductGrid from './components/ProductGrid';
 import CartDrawer from './components/CartDrawer';
@@ -23,7 +24,7 @@ export default function RonStore() {
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // Staff Dash & Orders
+  // Staff Dash & Orders (kept for fallback compatibility if needed)
   const [isStaffDashOpen, setIsStaffDashOpen] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
 
@@ -42,7 +43,11 @@ export default function RonStore() {
 
   const fetchProducts = async () => {
     const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-    if (data) setProducts(data);
+    if (data && data.length > 0) {
+      setProducts(data);
+    } else {
+      setProducts(PRODUCTS as any);
+    }
   };
 
   const checkUser = async () => {
@@ -143,9 +148,12 @@ export default function RonStore() {
   return (
     <div className="min-h-screen bg-[#FBF9F5] text-stone-800 font-sans">
       <Navbar 
-        user={user} userRole={userRole} cartCount={cart.reduce((s, i) => s + i.quantity, 0)}
-        onOpenAuth={() => setIsAuthOpen(true)} onOpenCart={() => setIsCartOpen(true)}
-        onOpenStaffDash={() => { setIsStaffDashOpen(true); fetchOrders(); }} onSignOut={handleSignOut}
+        user={user} 
+        userRole={userRole} 
+        cartCount={cart.reduce((s, i) => s + i.quantity, 0)}
+        onOpenAuth={() => setIsAuthOpen(true)} 
+        onOpenCart={() => setIsCartOpen(true)}
+        onSignOut={handleSignOut}
       />
 
       {/* Hero Section with Coffee Advertising Image */}
@@ -186,11 +194,6 @@ export default function RonStore() {
         onUpdateQuantity={updateQuantity} onProceedToCheckout={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }}
       />
 
-      <StaffDashboard 
-        isOpen={isStaffDashOpen} products={products} orders={orders} onClose={() => setIsStaffDashOpen(false)}
-        onSaveProduct={handleSaveProduct} onDeleteProduct={handleDeleteProduct} onUpdateOrderStatus={updateOrderStatus}
-      />
-
       {/* QUICK VIEW MODAL */}
       {quickViewProduct && (
         <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -212,7 +215,7 @@ export default function RonStore() {
                   </div>
                   <div className="mb-6">
                     <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Grind Type</label>
-                    <select value={selectedGrind} onChange={e => setSelectedGrind(e.target.value)} className="w-full bg-stone-50 border rounded-xl px-3 py-2 text-sm">
+                    <select value={selectedGrind} onChange={e => setSelectedGrind(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-sm">
                       {quickViewProduct.grind_options?.map(g => <option key={g} value={g}>{g}</option>)}
                     </select>
                   </div>
@@ -239,7 +242,7 @@ export default function RonStore() {
             <h3 className="text-2xl font-bold mb-2">Sign In to RON</h3>
             {authError && <p className="text-xs text-red-600 mb-4">{authError}</p>}
             <form onSubmit={handleAuth} className="space-y-4">
-              <input type="email" required value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" placeholder="staff@roncoffee.com" />
+              <input type="email" required value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" placeholder="staff@ron.com" />
               <input type="password" required value={authPassword} onChange={e => setAuthPassword(e.target.value)} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" placeholder="••••••••" />
               <button type="submit" className="w-full bg-amber-900 text-white py-3.5 rounded-xl font-bold">Sign In</button>
             </form>
