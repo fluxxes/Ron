@@ -7,7 +7,7 @@ import Navbar from './components/Navbar';
 import ProductGrid from './components/ProductGrid';
 import CartDrawer from './components/CartDrawer';
 import StaffDashboard from './components/StaffDashboard';
-import { X, CheckCircle2, ChevronRight } from 'lucide-react';
+import { X, CheckCircle2, ChevronRight, ArrowRight } from 'lucide-react';
 
 export default function RonStore() {
   const [products, setProducts] = useState<Product[]>([]);
