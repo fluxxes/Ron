@@ -5,13 +5,14 @@ export interface Product {
   region: string;
   process: string;
   altitude: string;
-  flavorNotes: string[];
-  roastLevel: 'Light' | 'Medium' | 'Dark';
+  flavor_notes: string[];
+  roast_level: 'Light' | 'Medium' | 'Dark';
   description: string;
   price: number;
+  stock_quantity: number;
   image: string;
-  weightOptions: string[];
-  grindOptions: string[];
+  weight_options: string[];
+  grind_options: string[];
   bestseller?: boolean;
 }
 
@@ -24,4 +25,17 @@ export interface CartItem {
   selectedWeight: string;
   selectedGrind: string;
   quantity: number;
+}
+
+export interface Order {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  address: string;
+  city: string;
+  postal_code: string;
+  total_amount: number;
+  status: 'Processing' | 'Roasted & Packed' | 'Shipped' | 'Completed' | 'Cancelled';
+  items: CartItem[];
+  created_at: string;
 }
