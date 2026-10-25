@@ -6,8 +6,8 @@ import {
   X, Plus, Minus, Trash2, CheckCircle2, ShieldCheck, Truck, 
   Award, ArrowRight, ChevronRight
 } from 'lucide-react';
-import { PRODUCTS, BREW_GUIDES } from './data/products';
-import { Product, CartItem } from './types/coffee';
+import { PRODUCTS, BREW_GUIDES } from './data/products.ts';
+import { Product, CartItem } from './types/coffee.ts';
 
 export default function CoffeeStore() {
   const [cart, setCart] = useState<CartItem[]>([]);
