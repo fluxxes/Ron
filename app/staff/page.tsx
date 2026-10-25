@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Product, Order } from '../types/coffee';
-import { Package, ShoppingBag, Plus, Trash2, Edit2, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Package, ShoppingBag, Plus, Trash2, Edit2, ArrowLeft, ShieldCheck, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from '../lib/useTranslation';
 
 export default function StaffPage() {
   const router = useRouter();
+  const { lang, t, toggleLanguage } = useTranslation();
   const [user, setUser] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('customer');
   const [loading, setLoading] = useState(true);
@@ -99,20 +101,27 @@ export default function StaffPage() {
               onClick={() => router.push('/')}
               className="bg-stone-800 p-2.5 rounded-xl hover:bg-stone-700 transition-all flex items-center gap-2 text-xs font-bold"
             >
-              <ArrowLeft className="w-4 h-4" /> Back to Store
+              <ArrowLeft className="w-4 h-4" /> {t('back_to_store')}
             </button>
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-6 h-6 text-amber-400" />
-              <span className="text-xl font-extrabold tracking-tight">RON Staff Dashboard</span>
+              <span className="text-xl font-extrabold tracking-tight">{t('staff_dash')}</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-xs text-stone-400 bg-stone-800 px-3 py-1.5 rounded-full">{user?.email}</span>
+            <button 
+              onClick={toggleLanguage}
+              className="bg-stone-800 text-stone-200 px-3 py-2 rounded-xl text-xs font-bold hover:bg-stone-700 transition-all flex items-center gap-1.5 border border-stone-700 shadow-sm"
+            >
+              <Globe className="w-4 h-4 text-amber-400" />
+              {lang === 'en' ? 'العربية' : 'English'}
+            </button>
+            <span className="text-xs text-stone-400 bg-stone-800 px-3 py-1.5 rounded-full hidden sm:inline">{user?.email}</span>
             <button 
               onClick={async () => { await supabase.auth.signOut(); router.push('/'); }}
               className="bg-red-950/50 text-red-300 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-900/50 transition-all"
             >
-              Sign Out
+              {t('sign_out')}
             </button>
           </div>
         </div>
@@ -126,13 +135,13 @@ export default function StaffPage() {
             onClick={() => setActiveTab('products')}
             className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'products' ? 'bg-amber-900 text-white shadow-lg' : 'bg-white text-stone-700 hover:bg-stone-100'}`}
           >
-            <Package className="w-4 h-4" /> Inventory ({products.length})
+            <Package className="w-4 h-4" /> {t('catalog_subtitle')} ({products.length})
           </button>
           <button 
             onClick={() => setActiveTab('orders')}
             className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'orders' ? 'bg-amber-900 text-white shadow-lg' : 'bg-white text-stone-700 hover:bg-stone-100'}`}
           >
-            <ShoppingBag className="w-4 h-4" /> Customer Orders ({orders.length})
+            <ShoppingBag className="w-4 h-4" /> {t('checkout_title')} ({orders.length})
           </button>
         </div>
 
@@ -140,7 +149,7 @@ export default function StaffPage() {
         {activeTab === 'products' && (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-extrabold text-stone-900">Coffee Inventory Management</h2>
+              <h2 className="text-2xl font-extrabold text-stone-900">{t('catalog_title')}</h2>
               <button 
                 onClick={() => {
                   setEditingProduct({ name: '', origin: '', price: 17.00, stock_quantity: 40, roast_level: 'Medium', description: '', image: '', weight_options: ['250g', '500g', '1kg'], grind_options: ['Whole Bean', 'Espresso'] });
@@ -148,19 +157,19 @@ export default function StaffPage() {
                 }}
                 className="bg-amber-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-amber-800 transition-all flex items-center gap-2 shadow-md"
               >
-                <Plus className="w-4 h-4" /> Add New Coffee
+                <Plus className="w-4 h-4" /> {t('add_to_cart')}
               </button>
             </div>
 
             <div className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-start border-collapse">
                 <thead>
                   <tr className="bg-stone-50 border-b border-stone-200 text-xs font-bold text-stone-500 uppercase tracking-wider">
-                    <th className="p-4">Coffee</th>
-                    <th className="p-4">Origin / Roast</th>
-                    <th className="p-4">Price</th>
-                    <th className="p-4">Stock</th>
-                    <th className="p-4 text-right">Actions</th>
+                    <th className="p-4">{t('catalog_title')}</th>
+                    <th className="p-4">{t('shipping_address')}</th>
+                    <th className="p-4">{t('total')}</th>
+                    <th className="p-4">{t('stock_label')}</th>
+                    <th className="p-4 text-end">{t('select_options')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100 text-sm">
@@ -175,15 +184,15 @@ export default function StaffPage() {
                       </td>
                       <td className="p-4">
                         <span className="font-medium text-stone-800">{p.origin}</span>
-                        <span className="block text-xs text-amber-700 font-semibold">{p.roast_level} Roast</span>
+                        <span className="block text-xs text-amber-700 font-semibold">{p.roast_level === 'Light' ? t('filter_light') : p.roast_level === 'Medium' ? t('filter_medium') : t('filter_dark')} {t('roast_suffix')}</span>
                       </td>
                       <td className="p-4 font-bold">${p.price.toFixed(2)}</td>
                       <td className="p-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${p.stock_quantity > 10 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                          {p.stock_quantity} bags
+                          {p.stock_quantity} {t('bags')}
                         </span>
                       </td>
-                      <td className="p-4 text-right space-x-2">
+                      <td className="p-4 text-end space-x-2">
                         <button 
                           onClick={() => { setEditingProduct(p); setIsProductModalOpen(true); }}
                           className="p-2 bg-stone-100 text-stone-700 rounded-xl hover:bg-stone-200 transition-all"
@@ -208,12 +217,12 @@ export default function StaffPage() {
         {/* ORDERS TAB */}
         {activeTab === 'orders' && (
           <div>
-            <h2 className="text-2xl font-extrabold text-stone-900 mb-6">Customer Order Fulfillment</h2>
+            <h2 className="text-2xl font-extrabold text-stone-900 mb-6">{t('checkout_title')}</h2>
             <div className="space-y-4">
               {orders.length === 0 ? (
                 <div className="bg-white rounded-3xl p-12 text-center border border-stone-200">
                   <ShoppingBag className="w-12 h-12 text-stone-300 mx-auto mb-3" />
-                  <p className="text-stone-500 font-medium">No customer orders received yet.</p>
+                  <p className="text-stone-500 font-medium">{t('cart_empty')}</p>
                 </div>
               ) : (
                 orders.map(o => (
@@ -236,8 +245,8 @@ export default function StaffPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end justify-between border-t md:border-t-0 md:border-l border-stone-200 pt-4 md:pt-0 md:pl-6">
-                      <div className="text-right mb-4">
-                        <p className="text-xs text-stone-500 uppercase font-bold">Total Amount</p>
+                      <div className="text-end mb-4">
+                        <p className="text-xs text-stone-500 uppercase font-bold">{t('total')}</p>
                         <p className="text-2xl font-extrabold text-stone-900">${o.total_amount.toFixed(2)}</p>
                       </div>
                       <div className="flex gap-2">
@@ -267,10 +276,10 @@ export default function StaffPage() {
       {isProductModalOpen && editingProduct && (
         <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-bold mb-6">{editingProduct.id ? 'Edit Coffee Product' : 'Add New Coffee Product'}</h3>
+            <h3 className="text-2xl font-bold mb-6">{editingProduct.id ? t('select_options') : t('add_to_cart')}</h3>
             <form onSubmit={handleSaveProduct} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Coffee Name</label>
+                <label className="block text-xs font-bold uppercase text-stone-500 mb-1">{t('full_name')}</label>
                 <input 
                   type="text" required 
                   value={editingProduct.name || ''} 
@@ -280,7 +289,7 @@ export default function StaffPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Origin Country</label>
+                  <label className="block text-xs font-bold uppercase text-stone-500 mb-1">{t('shipping_address')}</label>
                   <input 
                     type="text" required 
                     value={editingProduct.origin || ''} 
@@ -289,21 +298,21 @@ export default function StaffPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Roast Level</label>
+                  <label className="block text-xs font-bold uppercase text-stone-500 mb-1">{t('roast_suffix')}</label>
                   <select 
                     value={editingProduct.roast_level || 'Medium'} 
                     onChange={e => setEditingProduct({...editingProduct, roast_level: e.target.value as any})} 
                     className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm"
                   >
-                    <option value="Light">Light</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Dark">Dark</option>
+                    <option value="Light">{t('filter_light')}</option>
+                    <option value="Medium">{t('filter_medium')}</option>
+                    <option value="Dark">{t('filter_dark')}</option>
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Price ($)</label>
+                  <label className="block text-xs font-bold uppercase text-stone-500 mb-1">{t('total')} ($)</label>
                   <input 
                     type="number" step="0.01" required 
                     value={editingProduct.price || 0} 
@@ -312,7 +321,7 @@ export default function StaffPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Stock Quantity</label>
+                  <label className="block text-xs font-bold uppercase text-stone-500 mb-1">{t('stock_label')}</label>
                   <input 
                     type="number" required 
                     value={editingProduct.stock_quantity || 0} 
@@ -331,7 +340,7 @@ export default function StaffPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Description</label>
+                <label className="block text-xs font-bold uppercase text-stone-500 mb-1">{t('hero_desc')}</label>
                 <textarea 
                   rows={3} required 
                   value={editingProduct.description || ''} 
@@ -351,7 +360,7 @@ export default function StaffPage() {
                   type="submit" 
                   className="w-1/2 bg-amber-900 text-white py-3.5 rounded-xl font-bold hover:bg-amber-800"
                 >
-                  Save Product
+                  {t('complete_order')}
                 </button>
               </div>
             </form>

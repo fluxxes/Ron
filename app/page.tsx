@@ -7,10 +7,11 @@ import { PRODUCTS } from './data/products';
 import Navbar from './components/Navbar';
 import ProductGrid from './components/ProductGrid';
 import CartDrawer from './components/CartDrawer';
-import StaffDashboard from './components/StaffDashboard';
+import { useTranslation } from './lib/useTranslation';
 import { X, CheckCircle2, ChevronRight, ArrowRight } from 'lucide-react';
 
 export default function RonStore() {
+  const { lang, t, toggleLanguage } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -151,9 +152,12 @@ export default function RonStore() {
         user={user} 
         userRole={userRole} 
         cartCount={cart.reduce((s, i) => s + i.quantity, 0)}
+        lang={lang}
+        onToggleLang={toggleLanguage}
         onOpenAuth={() => setIsAuthOpen(true)} 
         onOpenCart={() => setIsCartOpen(true)}
         onSignOut={handleSignOut}
+        t={t}
       />
 
       {/* Hero Section with Coffee Advertising Image */}
@@ -169,16 +173,16 @@ export default function RonStore() {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-800 text-amber-200 mb-4 inline-block">
-              RON Specialty Micro-Batch Roastery
+              {t('hero_badge')}
             </span>
             <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight mb-6">
-              Exceptional Beans <br /><span className="text-amber-400">Roasted by RON</span>
+              {t('hero_title_1')} <br /><span className="text-amber-400">{t('hero_title_2')}</span>
             </h1>
             <p className="text-stone-300 text-base mb-8">
-              Hand-selected from sustainable estates worldwide, freshly roasted to order, and shipped straight to your cup.
+              {t('hero_desc')}
             </p>
             <a href="#shop" className="bg-amber-600 text-white px-8 py-3.5 rounded-full font-bold hover:bg-amber-700 transition-all inline-flex items-center gap-2">
-              Explore RON Selection <ArrowRight className="w-4 h-4" />
+              {t('explore_btn')} <ArrowRight className="w-4 h-4" />
             </a>
           </div>
         </div>
@@ -187,11 +191,13 @@ export default function RonStore() {
       <ProductGrid 
         products={filteredProducts} selectedRoast={selectedRoast} onSelectRoast={setSelectedRoast}
         onSelectProduct={(p) => { setQuickViewProduct(p); setSelectedWeight(p.weight_options[0] || '250g'); setSelectedGrind(p.grind_options[0] || 'Whole Bean'); }}
+        t={t}
       />
 
       <CartDrawer 
         isOpen={isCartOpen} cart={cart} onClose={() => setIsCartOpen(false)}
         onUpdateQuantity={updateQuantity} onProceedToCheckout={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }}
+        t={t}
       />
 
       {/* QUICK VIEW MODAL */}
@@ -206,7 +212,7 @@ export default function RonStore() {
                   <h3 className="text-2xl font-bold text-stone-900 mb-2">{quickViewProduct.name}</h3>
                   <p className="text-stone-600 text-sm mb-4">{quickViewProduct.description}</p>
                   <div className="mb-4">
-                    <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Bag Size</label>
+                    <label className="block text-xs font-bold uppercase text-stone-500 mb-2">{t('bag_size')}</label>
                     <div className="grid grid-cols-3 gap-2">
                       {quickViewProduct.weight_options?.map(w => (
                         <button key={w} onClick={() => setSelectedWeight(w)} className={`py-2 rounded-xl text-xs font-bold border ${selectedWeight === w ? 'bg-amber-900 text-white border-amber-900' : 'bg-stone-50 text-stone-700'}`}>{w}</button>
@@ -214,7 +220,7 @@ export default function RonStore() {
                     </div>
                   </div>
                   <div className="mb-6">
-                    <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Grind Type</label>
+                    <label className="block text-xs font-bold uppercase text-stone-500 mb-2">{t('grind_type')}</label>
                     <select value={selectedGrind} onChange={e => setSelectedGrind(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-sm">
                       {quickViewProduct.grind_options?.map(g => <option key={g} value={g}>{g}</option>)}
                     </select>
@@ -226,7 +232,7 @@ export default function RonStore() {
                     const mult = selectedWeight === '500g' ? 1.8 : selectedWeight === '1kg' ? 3.3 : 1;
                     addToCart({ ...quickViewProduct, price: quickViewProduct.price * mult }, selectedWeight, selectedGrind);
                     setQuickViewProduct(null);
-                  }} className="bg-amber-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-amber-800">Add to Cart</button>
+                  }} className="bg-amber-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-amber-800">{t('add_to_cart')}</button>
                 </div>
               </div>
             </div>
@@ -239,12 +245,18 @@ export default function RonStore() {
         <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl relative">
             <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 p-2"><X className="w-5 h-5" /></button>
-            <h3 className="text-2xl font-bold mb-2">Sign In to RON</h3>
+            <h3 className="text-2xl font-bold mb-2">{t('auth_title')}</h3>
             {authError && <p className="text-xs text-red-600 mb-4">{authError}</p>}
             <form onSubmit={handleAuth} className="space-y-4">
-              <input type="email" required value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" placeholder="staff@ron.com" />
-              <input type="password" required value={authPassword} onChange={e => setAuthPassword(e.target.value)} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" placeholder="••••••••" />
-              <button type="submit" className="w-full bg-amber-900 text-white py-3.5 rounded-xl font-bold">Sign In</button>
+              <div>
+                <label className="block text-xs font-bold uppercase text-stone-500 mb-1">{t('email_label')}</label>
+                <input type="email" required value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" placeholder="staff@ron.com" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-stone-500 mb-1">{t('password_label')}</label>
+                <input type="password" required value={authPassword} onChange={e => setAuthPassword(e.target.value)} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" placeholder="••••••••" />
+              </div>
+              <button type="submit" className="w-full bg-amber-900 text-white py-3.5 rounded-xl font-bold">{t('sign_in')}</button>
             </form>
           </div>
         </div>
@@ -258,21 +270,21 @@ export default function RonStore() {
             {orderComplete ? (
               <div className="text-center py-12">
                 <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold mb-2">RON Order Placed!</h3>
-                <p className="text-stone-600 text-sm mb-6">Order saved and stock updated automatically.</p>
-                <button onClick={() => { setOrderComplete(false); setIsCheckoutOpen(false); }} className="bg-amber-900 text-white px-8 py-3.5 rounded-xl font-bold">Back to Store</button>
+                <h3 className="text-2xl font-bold mb-2">{t('order_placed')}</h3>
+                <p className="text-stone-600 text-sm mb-6">{t('order_success_desc')}</p>
+                <button onClick={() => { setOrderComplete(false); setIsCheckoutOpen(false); }} className="bg-amber-900 text-white px-8 py-3.5 rounded-xl font-bold">{t('back_to_store')}</button>
               </div>
             ) : (
               <form onSubmit={handleCheckoutSubmit} className="space-y-4">
-                <h3 className="text-2xl font-bold mb-6">RON Checkout</h3>
-                <input type="text" required placeholder="Full Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" />
-                <input type="email" required placeholder="Email Address" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" />
-                <input type="text" required placeholder="Shipping Address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" />
+                <h3 className="text-2xl font-bold mb-6">{t('checkout_title')}</h3>
+                <input type="text" required placeholder={t('full_name')} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" />
+                <input type="email" required placeholder={t('email_address')} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" />
+                <input type="text" required placeholder={t('shipping_address')} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" />
                 <div className="grid grid-cols-2 gap-4">
-                  <input type="text" required placeholder="City" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" />
-                  <input type="text" required placeholder="Postal Code" value={formData.postalCode} onChange={e => setFormData({...formData, postalCode: e.target.value})} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" />
+                  <input type="text" required placeholder={t('city')} value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" />
+                  <input type="text" required placeholder={t('postal_code')} value={formData.postalCode} onChange={e => setFormData({...formData, postalCode: e.target.value})} className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm" />
                 </div>
-                <button type="submit" className="w-full bg-amber-900 text-white py-4 rounded-xl font-bold">Complete Order (${subtotal.toFixed(2)})</button>
+                <button type="submit" className="w-full bg-amber-900 text-white py-4 rounded-xl font-bold">{t('complete_order')} (${subtotal.toFixed(2)})</button>
               </form>
             )}
           </div>

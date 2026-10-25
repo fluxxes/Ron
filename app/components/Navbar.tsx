@@ -1,26 +1,37 @@
 import React from 'react';
-import { ShoppingBag, ShieldCheck, User as UserIcon, LogOut } from 'lucide-react';
+import { ShoppingBag, ShieldCheck, User as UserIcon, LogOut, Globe } from 'lucide-react';
 import Link from 'next/link';
 
 interface NavbarProps {
   user: any;
   userRole: string;
   cartCount: number;
+  lang: 'en' | 'ar';
+  onToggleLang: () => void;
   onOpenAuth: () => void;
   onOpenCart: () => void;
   onSignOut: () => void;
+  t: (key: string) => string;
 }
 
-export default function Navbar({ user, userRole, cartCount, onOpenAuth, onOpenCart, onSignOut }: NavbarProps) {
+export default function Navbar({ user, userRole, cartCount, lang, onToggleLang, onOpenAuth, onOpenCart, onSignOut, t }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 bg-[#FBF9F5]/90 backdrop-blur-md border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-2xl font-black tracking-tighter text-stone-900">RON</span>
-          <span className="text-xs font-bold uppercase tracking-widest text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">Coffee</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">{t('brand_subtitle')}</span>
         </Link>
 
         <div className="flex items-center gap-4">
+          <button 
+            onClick={onToggleLang}
+            className="bg-stone-100 text-stone-800 px-3 py-2 rounded-xl text-xs font-bold hover:bg-stone-200 transition-all flex items-center gap-1.5 border border-stone-300 shadow-sm"
+          >
+            <Globe className="w-4 h-4 text-amber-800" />
+            {lang === 'en' ? 'العربية' : 'English'}
+          </button>
+
           {user ? (
             <div className="flex items-center gap-3">
               {userRole === 'staff' && (
@@ -28,14 +39,14 @@ export default function Navbar({ user, userRole, cartCount, onOpenAuth, onOpenCa
                   href="/staff" 
                   className="bg-stone-900 text-amber-400 px-4 py-2 rounded-xl text-xs font-bold hover:bg-stone-800 transition-all flex items-center gap-1.5 shadow-sm"
                 >
-                  <ShieldCheck className="w-4 h-4" /> Staff Management Dash
+                  <ShieldCheck className="w-4 h-4" /> {t('staff_dash')}
                 </Link>
               )}
               <span className="text-xs font-medium text-stone-600 hidden sm:inline">{user.email}</span>
               <button 
                 onClick={onSignOut}
                 className="p-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200 transition-all"
-                title="Sign Out"
+                title={t('sign_out')}
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -45,7 +56,7 @@ export default function Navbar({ user, userRole, cartCount, onOpenAuth, onOpenCa
               onClick={onOpenAuth}
               className="bg-stone-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-stone-800 transition-all flex items-center gap-2"
             >
-              <UserIcon className="w-4 h-4" /> Sign In
+              <UserIcon className="w-4 h-4" /> {t('sign_in')}
             </button>
           )}
 

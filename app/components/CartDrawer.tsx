@@ -8,9 +8,10 @@ interface CartDrawerProps {
   onClose: () => void;
   onUpdateQuantity: (id: string, delta: number) => void;
   onProceedToCheckout: () => void;
+  t: (key: string) => string;
 }
 
-export default function CartDrawer({ isOpen, cart, onClose, onUpdateQuantity, onProceedToCheckout }: CartDrawerProps) {
+export default function CartDrawer({ isOpen, cart, onClose, onUpdateQuantity, onProceedToCheckout, t }: CartDrawerProps) {
   if (!isOpen) return null;
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -19,12 +20,12 @@ export default function CartDrawer({ isOpen, cart, onClose, onUpdateQuantity, on
     <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex justify-end">
       <div className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
         <div className="p-6 border-b flex items-center justify-between">
-          <h3 className="font-bold text-lg flex items-center gap-2"><ShoppingBag className="w-5 h-5 text-amber-900" /> RON Cart ({cart.reduce((s, i) => s + i.quantity, 0)})</h3>
+          <h3 className="font-bold text-lg flex items-center gap-2"><ShoppingBag className="w-5 h-5 text-amber-900" /> {t('cart_title')} ({cart.reduce((s, i) => s + i.quantity, 0)})</h3>
           <button onClick={onClose} className="p-2"><X className="w-5 h-5" /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {cart.length === 0 ? (
-            <div className="text-center py-20 text-stone-400">Your cart is empty</div>
+            <div className="text-center py-20 text-stone-400">{t('cart_empty')}</div>
           ) : (
             cart.map(item => (
               <div key={item.id} className="flex gap-4 p-4 bg-stone-50 rounded-2xl border relative">
@@ -48,11 +49,11 @@ export default function CartDrawer({ isOpen, cart, onClose, onUpdateQuantity, on
         {cart.length > 0 && (
           <div className="p-6 border-t bg-stone-50">
             <div className="flex justify-between font-extrabold text-lg mb-4">
-              <span>Total</span>
+              <span>{t('total')}</span>
               <span>${subtotal.toFixed(2)}</span>
             </div>
             <button onClick={onProceedToCheckout} className="w-full bg-amber-900 text-white py-4 rounded-xl font-bold hover:bg-amber-800 flex items-center justify-center gap-2">
-              Proceed to Checkout <ChevronRight className="w-4 h-4" />
+              {t('proceed_to_checkout')} <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         )}
