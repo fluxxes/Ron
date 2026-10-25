@@ -148,6 +148,34 @@ export default function RonStore() {
         onOpenStaffDash={() => { setIsStaffDashOpen(true); fetchOrders(); }} onSignOut={handleSignOut}
       />
 
+      {/* Hero Section with Coffee Advertising Image */}
+      <section className="relative overflow-hidden bg-stone-900 text-white py-24">
+        <div className="absolute inset-0 z-0 opacity-40">
+          <img 
+            src="https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=1600&auto=format&fit=crop" 
+            alt="RON Coffee Roasting" 
+            className="w-full h-full object-cover" 
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-stone-950 via-stone-900/80 to-transparent"></div>
+        </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl">
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-800 text-amber-200 mb-4 inline-block">
+              RON Specialty Micro-Batch Roastery
+            </span>
+            <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight mb-6">
+              Exceptional Beans <br /><span className="text-amber-400">Roasted by RON</span>
+            </h1>
+            <p className="text-stone-300 text-base mb-8">
+              Hand-selected from sustainable estates worldwide, freshly roasted to order, and shipped straight to your cup.
+            </p>
+            <a href="#shop" className="bg-amber-600 text-white px-8 py-3.5 rounded-full font-bold hover:bg-amber-700 transition-all inline-flex items-center gap-2">
+              Explore RON Selection <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
+        </div>
+      </section>
+
       <ProductGrid 
         products={filteredProducts} selectedRoast={selectedRoast} onSelectRoast={setSelectedRoast}
         onSelectProduct={(p) => { setQuickViewProduct(p); setSelectedWeight(p.weight_options[0] || '250g'); setSelectedGrind(p.grind_options[0] || 'Whole Bean'); }}
