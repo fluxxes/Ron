@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Product, Order } from '../types/coffee';
 import { Package, ShoppingBag, Plus, Trash2, Edit2, ArrowLeft, ShieldCheck } from 'lucide-react';
@@ -20,11 +20,7 @@ export default function StaffPage() {
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
-  useEffect(() => {
-    checkStaffAuth();
-  }, []);
-
-  const checkStaffAuth = async () => {
+  const checkStaffAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
       router.push('/');
@@ -45,7 +41,11 @@ export default function StaffPage() {
     }
     setLoading(false);
     fetchData();
-  };
+  }, [router]);
+
+  useEffect(() => {
+    checkStaffAuth();
+  }, [checkStaffAuth]);
 
   const fetchData = async () => {
     const { data: prodData } = await supabase.from('products').select('*').order('created_at', { ascending: false });
@@ -292,7 +292,7 @@ export default function StaffPage() {
                   <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Roast Level</label>
                   <select 
                     value={editingProduct.roast_level || 'Medium'} 
-                    onChange={e => setEditingProduct({...editingProduct, roast_level: e.target.value})} 
+                    onChange={e => setEditingProduct({...editingProduct, roast_level: e.target.value as any})} 
                     className="w-full bg-stone-50 border rounded-xl px-4 py-3 text-sm"
                   >
                     <option value="Light">Light</option>
