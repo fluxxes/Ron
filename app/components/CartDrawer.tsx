@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { X, Plus, Minus, ChevronRight, ShoppingBag, Truck, Trash2 } from 'lucide-react';
+import { X, Plus, Minus, ChevronRight, ChevronLeft, ShoppingBag, Truck, Trash2 } from 'lucide-react';
 import { CartItem } from '../types/coffee';
+import { useTranslation } from '../lib/useTranslation';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -20,9 +21,9 @@ export default function CartDrawer({
   onClose,
   onUpdateQuantity,
   onProceedToCheckout,
-  lang = 'ar',
-  t,
 }: CartDrawerProps) {
+  const { lang, t, translateOption } = useTranslation();
+
   if (!isOpen) return null;
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -36,7 +37,7 @@ export default function CartDrawer({
         
         {/* Drawer Header */}
         <div className="p-6 bg-white border-b border-[#EDE6DD] flex items-center justify-between">
-          <h3 className="font-extrabold text-lg text-[#2C2825] flex items-center gap-2">
+          <h3 className="font-extrabold text-lg text-[#231F1E] flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-[#C4A484]" />
             <span>{t('cart_title')}</span>
             <span className="text-xs bg-[#EAE2D7] text-[#5A4D41] px-2.5 py-0.5 rounded-full">
@@ -44,6 +45,7 @@ export default function CartDrawer({
             </span>
           </h3>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 rounded-full hover:bg-stone-100 text-stone-500 transition-colors"
           >
@@ -53,7 +55,7 @@ export default function CartDrawer({
 
         {/* Free Shipping Progress Bar */}
         <div className="px-6 py-3 bg-[#EAE2D7]/50 border-b border-[#EDE6DD]">
-          <div className="flex items-center gap-2 text-xs font-bold text-[#2C2825] mb-1.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#231F1E] mb-1.5">
             <Truck className="w-4 h-4 text-[#5A4D41]" />
             {remainingForFreeShipping === 0 ? (
               <span className="text-emerald-800">{t('free_shipping_unlocked')}</span>
@@ -65,7 +67,7 @@ export default function CartDrawer({
           </div>
           <div className="w-full h-1.5 bg-white rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#2C2825] transition-all duration-300 rounded-full"
+              className="h-full bg-[#231F1E] transition-all duration-300 rounded-full"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -93,23 +95,25 @@ export default function CartDrawer({
                   />
                   <div className="flex-1">
                     <div className="flex justify-between items-start gap-2">
-                      <h4 className="font-bold text-sm text-[#2C2825] leading-snug">{itemTitle}</h4>
+                      <h4 className="font-bold text-sm text-[#231F1E] leading-snug">{itemTitle}</h4>
                       <button
+                        type="button"
                         onClick={() => onUpdateQuantity(item.id, -item.quantity)}
                         className="text-stone-400 hover:text-red-600 p-1"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <p className="text-xs text-[#C4A484] font-semibold mt-0.5">
-                      {item.selectedWeight} • {item.selectedGrind}
+                    <p className="text-xs text-[#9C7E5E] font-semibold mt-0.5">
+                      {translateOption(item.selectedWeight)} • {translateOption(item.selectedGrind)}
                     </p>
                     <div className="flex justify-between items-center mt-3">
-                      <span className="font-extrabold text-sm text-[#2C2825]">
+                      <span className="font-extrabold text-sm text-[#231F1E]">
                         {(item.price * item.quantity).toFixed(2)} {t('currency')}
                       </span>
                       <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#EDE6DD] rounded-xl px-2.5 py-1">
                         <button
+                          type="button"
                           onClick={() => onUpdateQuantity(item.id, -1)}
                           className="p-0.5 hover:text-amber-900"
                         >
@@ -119,6 +123,7 @@ export default function CartDrawer({
                           {item.quantity}
                         </span>
                         <button
+                          type="button"
                           onClick={() => onUpdateQuantity(item.id, 1)}
                           className="p-0.5 hover:text-amber-900"
                         >
@@ -136,18 +141,23 @@ export default function CartDrawer({
         {/* Drawer Footer */}
         {cart.length > 0 && (
           <div className="p-6 border-t border-[#EDE6DD] bg-white space-y-4">
-            <div className="flex justify-between font-extrabold text-lg text-[#2C2825]">
+            <div className="flex justify-between font-extrabold text-lg text-[#231F1E]">
               <span>{t('subtotal')}</span>
               <span>
                 {subtotal.toFixed(2)} {t('currency')}
               </span>
             </div>
             <button
+              type="button"
               onClick={onProceedToCheckout}
-              className="w-full bg-[#2C2825] text-white py-4 rounded-2xl font-bold hover:bg-[#3E3834] transition-all flex items-center justify-center gap-2 shadow-md"
+              className="w-full bg-[#231F1E] text-white py-4 rounded-2xl font-bold hover:bg-[#3A3331] transition-all flex items-center justify-center gap-2 shadow-md"
             >
               <span>{t('proceed_to_checkout')}</span>
-              <ChevronRight className="w-4 h-4" />
+              {lang === 'ar' ? (
+                <ChevronLeft className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
             </button>
           </div>
         )}

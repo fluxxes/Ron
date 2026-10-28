@@ -2,14 +2,134 @@ import { Product } from '../types/coffee';
 
 export const PRODUCTS: Product[] = [
   {
+    id: 'ethiopia-adisa',
+    name: 'Ethiopia - Adisa',
+    name_ar: 'إثيوبيا - أديسا',
+    category: 'Crops',
+    origin: 'Ethiopia',
+    origin_ar: 'إثيوبيا',
+    region: 'Adisa - Yirgacheffe',
+    region_ar: 'أديسا - يرقاتشيف',
+    process: 'Natural',
+    process_ar: 'مجففة',
+    altitude: '2,050m',
+    flavor_notes: ['Strawberry', 'Jasmine', 'Peach', 'Milk Chocolate'],
+    flavor_notes_ar: ['فراولة', 'ياسمين', 'خوخ', 'شوكولاتة بالحليب'],
+    roast_level: 'Light',
+    description: 'Vibrant Ethiopian Adisa coffee beans with rich berry sweetness, floral aromatics, and a velvety body.',
+    description_ar: 'محصول إثيوبيا أديسا الفاخر بإيحاءات الفواكه الحمراء والياسمين مع قوام مخملي وحلاوة عالية.',
+    price: 50.00,
+    stock_quantity: 45,
+    image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?q=80&w=800&auto=format&fit=crop',
+    weight_options: ['250g', '500g', '1kg'],
+    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
+    bestseller: true,
+  },
+  {
+    id: 'ethiopia-orga-wine',
+    name: 'Ethiopia - Orga Wine',
+    name_ar: 'إثيوبي - أورقا واين',
+    category: 'Crops',
+    origin: 'Ethiopia',
+    origin_ar: 'إثيوبيا',
+    region: 'Guji - Orga',
+    region_ar: 'قوجي - أورقا',
+    process: 'Anaerobic Wine',
+    process_ar: 'تخمير لاهوائي (واين)',
+    altitude: '2,150m',
+    flavor_notes: ['Red Grape', 'Dried Berries', 'Dark Cocoa', 'Floral'],
+    flavor_notes_ar: ['عنب أحمر', 'توت مجفف', 'كاكاو داكن', 'زهور برية'],
+    roast_level: 'Light',
+    description: 'An extraordinary anaerobic wine-processed Ethiopian lot bursting with complex berry sweetness and a silky finish.',
+    description_ar: 'محصول إثيوبي فاخر بمعالجة الواين اللاهوائية يتميز بحلاوة التوت المجفف والعنب الأحمر مع قوام حريري.',
+    price: 60.00,
+    stock_quantity: 40,
+    image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800&auto=format&fit=crop',
+    weight_options: ['250g', '500g', '1kg'],
+    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
+    bestseller: true,
+  },
+  {
+    id: 'uganda-kampala',
+    name: 'Uganda - Kampala',
+    name_ar: 'أوغندي - كامبالا',
+    category: 'Crops',
+    origin: 'Uganda',
+    origin_ar: 'أوغندا',
+    region: 'Kampala - Rwenzori',
+    region_ar: 'كامبالا - روينزوري',
+    process: 'Natural',
+    process_ar: 'مجففة',
+    altitude: '1,850m',
+    flavor_notes: ['Cherry', 'Caramel', 'Spiced Cocoa', 'Dried Fig'],
+    flavor_notes_ar: ['كرز أحمر', 'كراميل', 'كاكاو', 'تين مجفف'],
+    roast_level: 'Medium',
+    description: 'Hand-picked red cherries from high-altitude Ugandan farms offering deep caramel sweetness and a rich syrupy cup.',
+    description_ar: 'حبوب قهوة أوغندية منتقاة بعناية من مرتفعات كامبالا تمنحك حلاوة الكراميل والكرز وقواماً غنياً.',
+    price: 55.00,
+    stock_quantity: 35,
+    image: 'https://images.unsplash.com/photo-1524350876685-274059332603?q=80&w=800&auto=format&fit=crop',
+    weight_options: ['250g', '500g', '1kg'],
+    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
+    bestseller: true,
+  },
+  {
+    id: 'brazil-tutti-frutti',
+    name: 'Brazil - Tutti Frutti',
+    name_ar: 'برازيلي - توتي فروتي',
+    category: 'Crops',
+    origin: 'Brazil',
+    origin_ar: 'البرازيل',
+    region: 'Mogiana',
+    region_ar: 'موجيانا',
+    process: 'Natural Infused',
+    process_ar: 'مجففة فاكهية',
+    altitude: '1,250m',
+    flavor_notes: ['Tropical Fruits', 'Sweet Berries', 'Hazelnut', 'Milk Chocolate'],
+    flavor_notes_ar: ['فواكه استوائية', 'توت حلو', 'بندق', 'شوكولاتة بالحليب'],
+    roast_level: 'Medium',
+    description: 'Sweet and fruity Brazilian lot with lush tropical fruit aromatics, creamy chocolate body, and zero bitterness.',
+    description_ar: 'محصول برازيلي فاكهي مميز بإيحاءات الفواكه الاستوائية والتوت الحلو مع قوام الشوكولاتة الكريمي.',
+    price: 48.00,
+    stock_quantity: 50,
+    image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=800&auto=format&fit=crop',
+    weight_options: ['250g', '500g', '1kg'],
+    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
+    bestseller: true,
+  },
+  {
+    id: 'colombia-huila-bourbon',
+    name: 'Colombia - Wardah (El Paraiso)',
+    name_ar: 'كولومبي - ورده',
+    category: 'Crops',
+    origin: 'Colombia',
+    origin_ar: 'كولومبيا',
+    region: 'Huila',
+    region_ar: 'هويلا',
+    process: 'Honey',
+    process_ar: 'عسلية',
+    altitude: '1,750m',
+    flavor_notes: ['Rose Water', 'Caramel', 'Red Apple', 'Milk Chocolate'],
+    flavor_notes_ar: ['ماء الورد', 'كراميل', 'تفاح أحمر', 'شوكولاتة بالحليب'],
+    roast_level: 'Medium',
+    description: 'Sourced from high-altitude farms in Huila, this honey-processed Bourbon delivers floral rose notes, caramel sweetness, and balanced red fruit acidity.',
+    description_ar: 'محصول كولومبي فاخر من مزارع هويلا المرتفعة بمعالجة عسلية يمنحك إيحاءات الورد والكراميل وحلاوة الفواكه الحمراء.',
+    price: 55.00,
+    stock_quantity: 30,
+    image: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?q=80&w=800&auto=format&fit=crop',
+    weight_options: ['250g', '500g', '1kg'],
+    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
+    bestseller: true,
+  },
+  {
     id: 'ethiopia-yirgacheffe',
     name: 'Ethiopia Yirgacheffe G1',
-    name_ar: 'إثيوبيا - أديسا (يرقاتشيف G1)',
+    name_ar: 'إثيوبيا - يرقاتشيف G1',
     category: 'Crops',
     origin: 'Ethiopia',
     origin_ar: 'إثيوبيا',
     region: 'Yirgacheffe',
-    region_ar: 'يرقاتشيف - أديسا',
+    region_ar: 'يرقاتشيف',
     process: 'Washed',
     process_ar: 'مغسولة',
     altitude: '1,900 - 2,200m',
@@ -20,34 +140,10 @@ export const PRODUCTS: Product[] = [
     description_ar: 'قهوة إثيوبية مغسولة فاخرة تتميز بإيحاءات زهرية عطرية، حمضية حمضيات منعشة، وقوام صافي يشبه الشاي الفاخر.',
     price: 50.00,
     stock_quantity: 40,
-    image: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['250g', '500g', '1kg'],
-    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-    bestseller: true,
-  },
-  {
-    id: 'colombia-huila-bourbon',
-    name: 'Colombia El Paraiso Bourbon',
-    name_ar: 'كولومبي - ورده (إل بارايسو بوربون)',
-    category: 'Crops',
-    origin: 'Colombia',
-    origin_ar: 'كولومبيا',
-    region: 'Huila',
-    region_ar: 'هويلا',
-    process: 'Honey',
-    process_ar: 'عسلية',
-    altitude: '1,750m',
-    flavor_notes: ['Caramel', 'Red Apple', 'Brown Sugar', 'Milk Chocolate'],
-    flavor_notes_ar: ['كراميل', 'تفاح أحمر', 'سكر بني', 'شوكولاتة بالحليب'],
-    roast_level: 'Medium',
-    description: 'Sourced from high-altitude farms in Huila, this honey-processed Bourbon delivers incredible sweetness with balanced red fruit acidity and buttery body.',
-    description_ar: 'محصول كولومبي فاخر من مزارع هويلا المرتفعة بمعالجة عسلية يمنحك حلاوة غنية مع حمضية الفواكه الحمراء المتوازنة وقوام كريمي.',
-    price: 55.00,
-    stock_quantity: 30,
     image: 'https://images.unsplash.com/photo-1610632380989-68fef408161d?q=80&w=800&auto=format&fit=crop',
     weight_options: ['250g', '500g', '1kg'],
     grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-    bestseller: true,
+    bestseller: false,
   },
   {
     id: 'sumatra-mandheling',
@@ -68,7 +164,7 @@ export const PRODUCTS: Product[] = [
     description_ar: 'معالجة سومطرة التقليدية تمنح القهوة قواماً ثقيلاً وغنياً مع حمضية منخفضة وإيحاءات الشوكولاتة الداكنة العميقة.',
     price: 55.00,
     stock_quantity: 25,
-    image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=800&auto=format&fit=crop',
     weight_options: ['250g', '500g', '1kg'],
     grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
   },
@@ -91,33 +187,9 @@ export const PRODUCTS: Product[] = [
     description_ar: 'مزروعة في تربة بركانية غنية لتحصل على كوب مخملي متوازن بإيحاءات الكاكاو واللوز المحمص.',
     price: 48.00,
     stock_quantity: 35,
-    image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=800&auto=format&fit=crop',
     weight_options: ['250g', '500g', '1kg'],
     grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-  },
-  {
-    id: 'ethiopia-orga-wine',
-    name: 'Ethiopia Orga Wine Process',
-    name_ar: 'إثيوبي - أورقا واين',
-    category: 'Crops',
-    origin: 'Ethiopia',
-    origin_ar: 'إثيوبيا',
-    region: 'Guji - Orga',
-    region_ar: 'قوجي - أورقا',
-    process: 'Anaerobic Wine',
-    process_ar: 'تخمير لاهوائي (واين)',
-    altitude: '2,100m',
-    flavor_notes: ['Red Grape', 'Dried Berries', 'Dark Cocoa', 'Floral'],
-    flavor_notes_ar: ['عنب أحمر', 'توت مجفف', 'كاكاو داكن', 'زهور برية'],
-    roast_level: 'Light',
-    description: 'An extraordinary anaerobic wine-processed Ethiopian lot bursting with complex berry sweetness and a silky finish.',
-    description_ar: 'محصول إثيوبي فاخر بمعالجة الواين اللاهوائية يتميز بحلاوة التوت المجفف والعنب الأحمر مع قوام حريري.',
-    price: 60.00,
-    stock_quantity: 45,
-    image: 'https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['250g', '500g', '1kg'],
-    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-    bestseller: true,
   },
   {
     id: 'ron-tasting-box',
@@ -134,7 +206,7 @@ export const PRODUCTS: Product[] = [
     flavor_notes: ['Floral', 'Caramel', 'Berries', 'Dark Chocolate'],
     flavor_notes_ar: ['زهور', 'كراميل', 'فواكه حمراء', 'شوكولاتة'],
     roast_level: 'Medium',
-    description: 'Curated gift and tasting box featuring 4 signature 250g bags from Ethiopia, Colombia, Guatemala, and Sumatra.',
+    description: 'Curated gift and tasting box featuring 4 signature 250g bags from Ethiopia, Colombia, Brazil, and Uganda.',
     description_ar: 'بوكس التذوق الفاخر من رون يضم 4 محاصيل مختصة (250 جرام لكل كيس) لتجربة متكاملة لعشاق القهوة المختصة.',
     price: 185.00,
     stock_quantity: 20,
@@ -162,11 +234,69 @@ export const PRODUCTS: Product[] = [
     description_ar: 'طقم تحضير القهوة المقطرة V60 المتكامل يشمل قمع تقطير سيراميك، إناء تقديم زجاجي 600 مل، و100 فلتر ورقي.',
     price: 135.00,
     stock_quantity: 18,
-    image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?q=80&w=800&auto=format&fit=crop',
     weight_options: ['250g'],
     grind_options: ['Whole Bean'],
-  }
+  },
 ];
+
+/**
+ * Guarantees that any product row fetched from Supabase has complete Arabic & English fields
+ * even if the database row was created before Arabic columns existed.
+ */
+export function localizeProduct(raw: Product): Product {
+  const match = PRODUCTS.find(
+    p =>
+      p.id === raw.id ||
+      p.name.toLowerCase() === raw.name?.toLowerCase() ||
+      (raw.name && p.name.toLowerCase().includes(raw.name.toLowerCase()))
+  );
+
+  const fallbackOriginAr: Record<string, string> = {
+    Ethiopia: 'إثيوبيا',
+    Colombia: 'كولومبيا',
+    Brazil: 'البرازيل',
+    Uganda: 'أوغندا',
+    Indonesia: 'إندونيسيا',
+    Guatemala: 'غواتيمالا',
+  };
+
+  return {
+    ...match,
+    ...raw,
+    name: raw.name || match?.name || 'RON Specialty Coffee',
+    name_ar: raw.name_ar?.trim() || match?.name_ar || raw.name,
+    category: raw.category || match?.category || 'Crops',
+    origin: raw.origin || match?.origin || 'Ethiopia',
+    origin_ar:
+      raw.origin_ar?.trim() ||
+      match?.origin_ar ||
+      fallbackOriginAr[raw.origin] ||
+      raw.origin,
+    region: raw.region || match?.region || '',
+    region_ar: raw.region_ar?.trim() || match?.region_ar || raw.region,
+    process: raw.process || match?.process || 'Washed',
+    process_ar: raw.process_ar?.trim() || match?.process_ar || 'مغسولة',
+    description: raw.description || match?.description || '',
+    description_ar: raw.description_ar?.trim() || match?.description_ar || raw.description,
+    flavor_notes:
+      raw.flavor_notes && raw.flavor_notes.length > 0
+        ? raw.flavor_notes
+        : match?.flavor_notes || [],
+    flavor_notes_ar:
+      raw.flavor_notes_ar && raw.flavor_notes_ar.length > 0
+        ? raw.flavor_notes_ar
+        : match?.flavor_notes_ar || raw.flavor_notes || [],
+    weight_options:
+      raw.weight_options && raw.weight_options.length > 0
+        ? raw.weight_options
+        : match?.weight_options || ['250g', '500g', '1kg'],
+    grind_options:
+      raw.grind_options && raw.grind_options.length > 0
+        ? raw.grind_options
+        : match?.grind_options || ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
+  };
+}
 
 export const BREW_GUIDES = [
   {
@@ -182,14 +312,14 @@ export const BREW_GUIDES = [
       'Rinse paper filter with hot water and discard water.',
       'Add 20g of medium-fine coffee and tare scale.',
       'Pour 60g water for a 30-second bloom.',
-      'Pour in concentric circles up to 320g in stages. Enjoy!'
+      'Pour in concentric circles up to 320g in stages. Enjoy!',
     ],
     steps_ar: [
       'اغسل الفلتر الورقي بالماء الساخن ثم تخلص من ماء الشطف.',
       'أضف 20 جرام من القهوة المطحونة وصفر الميزان.',
       'صب 60 مل من الماء للترطيب واتركها لمدة 30 ثانية.',
-      'صب الماء بحركة دائرية على دفعات حتى تصل إلى 320 مل واستمتع بقهوتك!'
-    ]
+      'صب الماء بحركة دائرية على دفعات حتى تصل إلى 320 مل واستمتع بقهوتك!',
+    ],
   },
   {
     method: 'Espresso',
@@ -203,13 +333,13 @@ export const BREW_GUIDES = [
     steps: [
       'Dose 18g freshly ground coffee into your portafilter and distribute evenly.',
       'Tamp firmly and level.',
-      'Lock in and immediately start extraction. Aim for 36g liquid espresso in 28 seconds.'
+      'Lock in and immediately start extraction. Aim for 36g liquid espresso in 28 seconds.',
     ],
     steps_ar: [
       'ضع 18 جرام من القهوة المطحونة الطازجة في البورتافلتر ووزعها بالتساوي.',
       'اكبس القهوة بشكل مستوٍ ومتوازن.',
-      'ركّب البورتافلتر وابدأ الاستخلاص فوراً للحصول على 36 جرام خلال 28 ثانية.'
-    ]
+      'ركّب البورتافلتر وابدأ الاستخلاص فوراً للحصول على 36 جرام خلال 28 ثانية.',
+    ],
   },
   {
     method: 'French Press',
@@ -224,13 +354,13 @@ export const BREW_GUIDES = [
       'Add 30g coarse coffee to the French Press.',
       'Pour 450g hot water (93°C), give a gentle stir.',
       'Place plunger on top without pressing down. Steep for 4 minutes.',
-      'Press down slowly and serve immediately.'
+      'Press down slowly and serve immediately.',
     ],
     steps_ar: [
       'أضف 30 جرام من القهوة الخشنة في إناء الفرنش برس.',
       'صب 450 مل من الماء الساخن (93 درجة مئوية) وحركها بلطف.',
       'ضع الغطاء دون ضغط المكبس واتركها تتخمر لمدة 4 دقائق.',
-      'اضغط المكبس ببطء وقدم القهوة فوراً.'
-    ]
-  }
+      'اضغط المكبس ببطء وقدم القهوة فوراً.',
+    ],
+  },
 ];

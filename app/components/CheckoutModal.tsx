@@ -9,7 +9,6 @@ import {
   Truck,
   MapPin,
   Printer,
-  ShieldCheck,
 } from 'lucide-react';
 import {
   CartItem,
@@ -18,6 +17,7 @@ import {
   PaymentMethodType,
   Order,
 } from '../types/coffee';
+import { useTranslation } from '../lib/useTranslation';
 import Link from 'next/link';
 
 export interface CheckoutSubmissionPayload {
@@ -61,7 +61,6 @@ interface CheckoutModalProps {
 export default function CheckoutModal({
   isOpen,
   onClose,
-  cart,
   subtotal,
   orderComplete,
   completedOrder,
@@ -70,8 +69,9 @@ export default function CheckoutModal({
   user,
   onCheckoutSubmit,
   onResetCheckout,
-  t,
 }: CheckoutModalProps) {
+  const { lang, t } = useTranslation();
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -87,7 +87,6 @@ export default function CheckoutModal({
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('card');
 
-  // Card Vault / New Card State
   const [selectedCardId, setSelectedCardId] = useState<string>('new');
   const [saveCard, setSaveCard] = useState<boolean>(true);
   const [cardForm, setCardForm] = useState({
@@ -178,7 +177,11 @@ export default function CheckoutModal({
     const activeMethod = overrideMethod || paymentMethod;
 
     if (!formData.name || !formData.email || !formData.address || !formData.city) {
-      setPaymentError('Please complete all required shipping address fields.');
+      setPaymentError(
+        lang === 'ar'
+          ? 'يرجى تعبئة جميع حقول عنوان الشحن المطلوبة.'
+          : 'Please complete all required shipping address fields.'
+      );
       return;
     }
 
@@ -188,11 +191,19 @@ export default function CheckoutModal({
       if (selectedCardId === 'new') {
         const rawDigits = cardForm.number.replace(/\D/g, '');
         if (rawDigits.length < 15) {
-          setPaymentError('Please enter a valid 16-digit card number.');
+          setPaymentError(
+            lang === 'ar'
+              ? 'يرجى إدخال رقم بطاقة صحيح مكون من 16 رقم.'
+              : 'Please enter a valid 16-digit card number.'
+          );
           return;
         }
         if (cardForm.cvv.length < 3) {
-          setPaymentError('Please enter a valid 3-digit CVV security code.');
+          setPaymentError(
+            lang === 'ar'
+              ? 'يرجى إدخال رمز الأمان (CVV) المكون من 3 أرقام.'
+              : 'Please enter a valid 3-digit CVV security code.'
+          );
           return;
         }
         const [exp_month = '12', exp_year = '28'] = cardForm.expiry.split('/');
@@ -210,7 +221,11 @@ export default function CheckoutModal({
         };
       } else {
         if (cardForm.cvv.length < 3) {
-          setPaymentError('Please confirm the 3-digit CVV for your saved card.');
+          setPaymentError(
+            lang === 'ar'
+              ? 'يرجى تأكيد رمز الأمان (CVV) لبطاقتك المحفوظة.'
+              : 'Please confirm the 3-digit CVV for your saved card.'
+          );
           return;
         }
       }
@@ -249,6 +264,7 @@ export default function CheckoutModal({
     <div className="fixed inset-0 z-50 bg-stone-950/75 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative max-h-[92vh] overflow-y-auto border border-[#EDE6DD]">
         <button
+          type="button"
           onClick={onClose}
           className="absolute top-6 end-6 p-2 rounded-full hover:bg-stone-100 text-stone-500"
         >
@@ -261,7 +277,7 @@ export default function CheckoutModal({
               <CheckCircle2 className="w-12 h-12 text-emerald-600" />
             </div>
             <div>
-              <h3 className="text-2xl font-extrabold text-[#2C2825] mb-1">{t('order_placed')}</h3>
+              <h3 className="text-2xl font-extrabold text-[#231F1E] mb-1">{t('order_placed')}</h3>
               <p className="text-stone-500 text-xs">{t('order_success_desc')}</p>
             </div>
 
@@ -269,17 +285,17 @@ export default function CheckoutModal({
               <div className="bg-[#FAF7F2] p-5 rounded-2xl border border-[#EDE6DD] max-w-md mx-auto text-xs space-y-2">
                 <div className="flex justify-between font-bold">
                   <span className="text-stone-500">{t('order_number_label')}</span>
-                  <span className="text-[#2C2825] font-extrabold">
+                  <span className="text-[#231F1E] font-extrabold">
                     {completedOrder.order_number || completedOrder.id.slice(0, 8)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Transaction ID:</span>
+                  <span className="text-stone-500">{t('transaction_id_label')}</span>
                   <span className="font-mono text-stone-700">{completedOrder.transaction_id}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-stone-500">{t('total')}:</span>
-                  <span className="font-extrabold text-[#2C2825]">
+                  <span className="font-extrabold text-[#231F1E]">
                     {completedOrder.total_amount.toFixed(2)} {t('currency')}
                   </span>
                 </div>
@@ -292,20 +308,22 @@ export default function CheckoutModal({
                   href={`/track?order=${encodeURIComponent(
                     completedOrder.order_number || completedOrder.id
                   )}`}
-                  className="bg-[#2C2825] text-white px-6 py-3.5 rounded-xl text-xs font-bold hover:bg-[#3E3834] flex items-center gap-2"
+                  className="bg-[#231F1E] text-white px-6 py-3.5 rounded-xl text-xs font-bold hover:bg-[#3A3331] flex items-center gap-2"
                 >
                   <Truck className="w-4 h-4" />
                   <span>{t('track_your_order')}</span>
                 </Link>
               )}
               <button
+                type="button"
                 onClick={() => window.print()}
-                className="bg-[#EAE2D7] text-[#2C2825] px-5 py-3.5 rounded-xl text-xs font-bold flex items-center gap-2"
+                className="bg-[#EAE2D7] text-[#231F1E] px-5 py-3.5 rounded-xl text-xs font-bold flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" />
                 <span>{t('print_invoice')}</span>
               </button>
               <button
+                type="button"
                 onClick={onResetCheckout}
                 className="border border-stone-300 text-stone-700 px-6 py-3.5 rounded-xl text-xs font-bold hover:bg-stone-50"
               >
@@ -317,9 +335,9 @@ export default function CheckoutModal({
           <form onSubmit={e => validateAndSubmit(e)} className="space-y-6">
             <div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#C4A484]">
-                RŌN ROASTERY CHECKOUT
+                {t('checkout_badge')}
               </span>
-              <h3 className="text-2xl font-extrabold text-[#2C2825]">{t('checkout_title')}</h3>
+              <h3 className="text-2xl font-extrabold text-[#231F1E]">{t('checkout_title')}</h3>
             </div>
 
             {paymentError && (
@@ -328,7 +346,6 @@ export default function CheckoutModal({
               </div>
             )}
 
-            {/* STEP 1: SAVED ADDRESS SELECTOR OR NEW SHIPPING FORM */}
             <div className="space-y-3">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-[#C4A484]" />
@@ -344,11 +361,13 @@ export default function CheckoutModal({
                       onClick={() => handleSelectSavedAddress(addr.id)}
                       className={`p-3.5 rounded-2xl border text-start transition-all ${
                         selectedAddressId === addr.id
-                          ? 'border-[#2C2825] bg-[#FAF7F2] shadow-sm'
+                          ? 'border-[#231F1E] bg-[#FAF7F2] shadow-sm'
                           : 'border-stone-200 hover:border-stone-300'
                       }`}
                     >
-                      <div className="font-extrabold text-xs text-[#2C2825]">{addr.label} — {addr.recipient_name}</div>
+                      <div className="font-extrabold text-xs text-[#231F1E]">
+                        {addr.label} — {addr.recipient_name}
+                      </div>
                       <div className="text-[11px] text-stone-500 truncate mt-0.5">
                         {addr.address_line1}, {addr.city}
                       </div>
@@ -359,7 +378,7 @@ export default function CheckoutModal({
                     onClick={() => handleSelectSavedAddress('new')}
                     className={`p-3.5 rounded-2xl border text-xs font-bold flex items-center justify-center ${
                       selectedAddressId === 'new'
-                        ? 'border-[#2C2825] bg-[#FAF7F2] text-[#2C2825]'
+                        ? 'border-[#231F1E] bg-[#FAF7F2] text-[#231F1E]'
                         : 'border-stone-200 text-stone-600'
                     }`}
                   >
@@ -436,14 +455,13 @@ export default function CheckoutModal({
                     type="checkbox"
                     checked={saveAddress}
                     onChange={e => setSaveAddress(e.target.checked)}
-                    className="rounded text-[#2C2825]"
+                    className="rounded text-[#231F1E]"
                   />
                   <span>{t('save_address_Future')}</span>
                 </label>
               )}
             </div>
 
-            {/* STEP 2: DELIVERY SPEED */}
             <div className="space-y-2.5">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
                 <Truck className="w-4 h-4 text-[#C4A484]" />
@@ -455,11 +473,11 @@ export default function CheckoutModal({
                   onClick={() => setShippingMethod('standard')}
                   className={`p-3.5 rounded-2xl border text-start flex justify-between items-center ${
                     shippingMethod === 'standard'
-                      ? 'border-[#2C2825] bg-[#FAF7F2]'
+                      ? 'border-[#231F1E] bg-[#FAF7F2]'
                       : 'border-stone-200'
                   }`}
                 >
-                  <span className="text-xs font-bold text-[#2C2825]">{t('shipping_standard')}</span>
+                  <span className="text-xs font-bold text-[#231F1E]">{t('shipping_standard')}</span>
                   <span className="text-xs font-extrabold text-emerald-700">
                     {subtotal >= 200 ? t('free_label') : `25.00 ${t('currency')}`}
                   </span>
@@ -469,17 +487,18 @@ export default function CheckoutModal({
                   onClick={() => setShippingMethod('express')}
                   className={`p-3.5 rounded-2xl border text-start flex justify-between items-center ${
                     shippingMethod === 'express'
-                      ? 'border-[#2C2825] bg-[#FAF7F2]'
+                      ? 'border-[#231F1E] bg-[#FAF7F2]'
                       : 'border-stone-200'
                   }`}
                 >
-                  <span className="text-xs font-bold text-[#2C2825]">{t('shipping_express')}</span>
-                  <span className="text-xs font-extrabold text-[#2C2825]">45.00 {t('currency')}</span>
+                  <span className="text-xs font-bold text-[#231F1E]">{t('shipping_express')}</span>
+                  <span className="text-xs font-extrabold text-[#231F1E]">
+                    45.00 {t('currency')}
+                  </span>
                 </button>
               </div>
             </div>
 
-            {/* STEP 3: MULTI-METHOD PAYMENT GATEWAY */}
             <div className="space-y-3">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
                 <CreditCard className="w-4 h-4 text-[#C4A484]" />
@@ -499,7 +518,7 @@ export default function CheckoutModal({
                     onClick={() => setPaymentMethod(pm.key as PaymentMethodType)}
                     className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${
                       paymentMethod === pm.key
-                        ? 'bg-[#2C2825] text-white border-[#2C2825]'
+                        ? 'bg-[#231F1E] text-white border-[#231F1E]'
                         : 'bg-[#FAF7F2] text-stone-700 border-[#EDE6DD]'
                     }`}
                   >
@@ -508,7 +527,6 @@ export default function CheckoutModal({
                 ))}
               </div>
 
-              {/* CREDIT / DEBIT / MADA CARD PANEL */}
               {paymentMethod === 'card' && (
                 <div className="p-4 rounded-2xl bg-[#FAF7F2] border border-[#EDE6DD] space-y-3">
                   {savedCards.length > 0 && (
@@ -524,7 +542,7 @@ export default function CheckoutModal({
                             onClick={() => setSelectedCardId(sc.id)}
                             className={`px-3 py-2 rounded-xl border text-xs font-bold ${
                               selectedCardId === sc.id
-                                ? 'bg-[#2C2825] text-white border-[#2C2825]'
+                                ? 'bg-[#231F1E] text-white border-[#231F1E]'
                                 : 'bg-white text-stone-700 border-stone-200'
                             }`}
                           >
@@ -536,7 +554,7 @@ export default function CheckoutModal({
                           onClick={() => setSelectedCardId('new')}
                           className={`px-3 py-2 rounded-xl border text-xs font-bold ${
                             selectedCardId === 'new'
-                              ? 'bg-[#2C2825] text-white border-[#2C2825]'
+                              ? 'bg-[#231F1E] text-white border-[#231F1E]'
                               : 'bg-white text-stone-700 border-stone-200'
                           }`}
                         >
@@ -601,7 +619,7 @@ export default function CheckoutModal({
                   ) : (
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-xs text-stone-600 font-medium">
-                        Confirm CVV for selected card:
+                        {t('confirm_cvv_saved')}
                       </span>
                       <input
                         type="password"
@@ -618,24 +636,22 @@ export default function CheckoutModal({
                 </div>
               )}
 
-              {/* PAYPAL SMART CHECKOUT PANEL */}
               {paymentMethod === 'paypal' && (
                 <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#EDE6DD] text-center space-y-3">
-                  <p className="text-xs text-stone-600">
-                    Pay securely using your PayPal account balance, linked bank, or PayPal Pay Later.
-                  </p>
+                  <p className="text-xs text-stone-600">{t('paypal_desc')}</p>
                   <button
                     type="button"
                     disabled={processingPayment}
                     onClick={e => validateAndSubmit(e as any, 'paypal')}
                     className="w-full bg-[#FFC439] hover:bg-[#F4B400] text-[#003087] font-black py-3.5 rounded-xl text-sm tracking-wide shadow transition-all"
                   >
-                    {processingPayment ? 'Authorizing PayPal...' : `PayPal Checkout • ${finalTotal.toFixed(2)} ${t('currency')}`}
+                    {processingPayment
+                      ? t('processing_payment')
+                      : `${t('paypal_btn')} • ${finalTotal.toFixed(2)} ${t('currency')}`}
                   </button>
                 </div>
               )}
 
-              {/* APPLE PAY PANEL */}
               {paymentMethod === 'apple_pay' && (
                 <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#EDE6DD] text-center space-y-3">
                   <button
@@ -645,17 +661,20 @@ export default function CheckoutModal({
                     className="w-full bg-black hover:bg-stone-900 text-white font-bold py-3.5 rounded-xl text-sm tracking-wide shadow transition-all flex items-center justify-center gap-2"
                   >
                     <span> Pay</span>
-                    <span>• {finalTotal.toFixed(2)} {t('currency')}</span>
+                    <span>
+                      • {finalTotal.toFixed(2)} {t('currency')}
+                    </span>
                   </button>
                 </div>
               )}
             </div>
 
-            {/* ORDER TOTAL BREAKDOWN */}
             <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#EDE6DD] space-y-1.5 text-xs">
               <div className="flex justify-between text-stone-600">
                 <span>{t('subtotal')}</span>
-                <span>{subtotal.toFixed(2)} {t('currency')}</span>
+                <span>
+                  {subtotal.toFixed(2)} {t('currency')}
+                </span>
               </div>
               <div className="flex justify-between text-stone-600">
                 <span>{t('shipping')}</span>
@@ -667,13 +686,17 @@ export default function CheckoutModal({
               </div>
               {codFee > 0 && (
                 <div className="flex justify-between text-stone-600">
-                  <span>COD Fee</span>
-                  <span>{codFee.toFixed(2)} {t('currency')}</span>
+                  <span>{t('cod_fee_label')}</span>
+                  <span>
+                    {codFee.toFixed(2)} {t('currency')}
+                  </span>
                 </div>
               )}
-              <div className="flex justify-between font-extrabold text-base text-[#2C2825] pt-2 border-t border-[#EDE6DD]">
+              <div className="flex justify-between font-extrabold text-base text-[#231F1E] pt-2 border-t border-[#EDE6DD]">
                 <span>{t('total')}</span>
-                <span>{finalTotal.toFixed(2)} {t('currency')}</span>
+                <span>
+                  {finalTotal.toFixed(2)} {t('currency')}
+                </span>
               </div>
             </div>
 
@@ -681,12 +704,12 @@ export default function CheckoutModal({
               <button
                 type="submit"
                 disabled={processingPayment}
-                className="w-full bg-[#2C2825] text-white py-4 rounded-2xl font-bold hover:bg-[#3E3834] transition-all flex items-center justify-center gap-2 shadow-lg"
+                className="w-full bg-[#231F1E] text-white py-4 rounded-2xl font-bold hover:bg-[#3A3331] transition-all flex items-center justify-center gap-2 shadow-lg"
               >
                 <Lock className="w-4 h-4 text-[#C4A484]" />
                 <span>
                   {processingPayment
-                    ? 'Processing Secure Order...'
+                    ? t('processing_payment')
                     : `${t('complete_order')} (${finalTotal.toFixed(2)} ${t('currency')})`}
                 </span>
               </button>

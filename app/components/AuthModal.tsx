@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Lock, Mail, User, Phone, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useTranslation } from '../lib/useTranslation';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,8 +20,8 @@ export default function AuthModal({
   onAuthSubmit,
   onAuthSuccess,
   authError,
-  t,
 }: AuthModalProps) {
+  const { lang, t } = useTranslation();
   const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -68,14 +69,23 @@ export default function AuthModal({
               role: 'customer',
             },
           ]);
-          setLocalSuccess('Account created successfully! You are now signed in.');
+          setLocalSuccess(
+            lang === 'ar'
+              ? 'تم إنشاء حسابك بنجاح! تم تسجيل دخولك تلقائياً.'
+              : 'Account created successfully! You are now signed in.'
+          );
           if (onAuthSuccess) onAuthSuccess(data.user);
           setTimeout(() => onClose(), 900);
         }
       } else if (mode === 'reset') {
         const { error } = await supabase.auth.resetPasswordForEmail(email);
         if (error) setLocalError(error.message);
-        else setLocalSuccess('Password reset instructions have been sent to your email.');
+        else
+          setLocalSuccess(
+            lang === 'ar'
+              ? 'تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني.'
+              : 'Password reset instructions have been sent to your email.'
+          );
       }
     } finally {
       setSubmitting(false);
@@ -86,6 +96,7 @@ export default function AuthModal({
     <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl relative border border-[#EDE6DD]">
         <button
+          type="button"
           onClick={onClose}
           className="absolute top-6 end-6 p-2 rounded-full hover:bg-stone-100 text-stone-500"
         >
@@ -96,10 +107,9 @@ export default function AuthModal({
           <span className="font-serif font-extrabold text-[#5A4D41] text-sm">RŌN</span>
         </div>
 
-        <h3 className="text-2xl font-extrabold text-[#2C2825] mb-1">{t('auth_title')}</h3>
+        <h3 className="text-2xl font-extrabold text-[#231F1E] mb-1">{t('auth_title')}</h3>
         <p className="text-xs text-stone-500 mb-6">{t('auth_desc')}</p>
 
-        {/* Mode Switcher Tabs */}
         <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAF7F2] rounded-2xl border border-[#EDE6DD] mb-6">
           <button
             type="button"
@@ -109,7 +119,7 @@ export default function AuthModal({
               setLocalSuccess('');
             }}
             className={`py-2 rounded-xl text-xs font-bold transition-all ${
-              mode === 'signin' ? 'bg-[#2C2825] text-white shadow-sm' : 'text-stone-600'
+              mode === 'signin' ? 'bg-[#231F1E] text-white shadow-sm' : 'text-stone-600'
             }`}
           >
             {t('sign_in')}
@@ -122,7 +132,7 @@ export default function AuthModal({
               setLocalSuccess('');
             }}
             className={`py-2 rounded-xl text-xs font-bold transition-all ${
-              mode === 'signup' ? 'bg-[#2C2825] text-white shadow-sm' : 'text-stone-600'
+              mode === 'signup' ? 'bg-[#231F1E] text-white shadow-sm' : 'text-stone-600'
             }`}
           >
             {t('sign_up')}
@@ -157,7 +167,6 @@ export default function AuthModal({
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
                     className="w-full bg-[#FAF7F2] border border-[#EDE6DD] rounded-xl ps-10 pe-4 py-3 text-sm"
-                    placeholder="Abdullah Al-..."
                   />
                 </div>
               </div>
@@ -219,7 +228,7 @@ export default function AuthModal({
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-[#2C2825] text-white py-3.5 rounded-xl font-bold hover:bg-[#3E3834] transition-all shadow-md"
+            className="w-full bg-[#231F1E] text-white py-3.5 rounded-xl font-bold hover:bg-[#3A3331] transition-all shadow-md"
           >
             {mode === 'signin'
               ? t('sign_in')
@@ -233,7 +242,7 @@ export default function AuthModal({
               <button
                 type="button"
                 onClick={() => setMode('reset')}
-                className="text-xs text-[#C4A484] hover:underline font-semibold"
+                className="text-xs text-[#9C7E5E] hover:underline font-semibold"
               >
                 {t('forgot_password')}
               </button>

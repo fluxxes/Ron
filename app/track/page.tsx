@@ -12,13 +12,14 @@ import {
   Truck,
   PackageCheck,
   ArrowLeft,
+  ArrowRight,
   Globe,
   MapPin,
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TrackOrderPage() {
-  const { lang, t, toggleLanguage } = useTranslation();
+  const { lang, t, toggleLanguage, translateOption, translateStatus } = useTranslation();
   const [orderLookup, setOrderLookup] = useState('');
   const [contactInput, setContactInput] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
@@ -82,7 +83,6 @@ export default function TrackOrderPage() {
     });
   }, [searchOrder]);
 
-  // Real-time subscription for live order status changes
   useEffect(() => {
     if (!trackedOrder?.id) return;
 
@@ -128,26 +128,31 @@ export default function TrackOrderPage() {
   const currentStep = trackedOrder ? getActiveStepIndex(trackedOrder.status) : 0;
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] text-[#2C2825] font-sans">
-      <header className="bg-white border-b border-[#EDE6DD] h-20 flex items-center">
+    <div className="min-h-screen bg-[#FAF7F2] text-[#231F1E]">
+      <header className="bg-white border-b border-[#E6DFD5] h-20 flex items-center">
         <div className="max-w-5xl mx-auto px-6 w-full flex items-center justify-between">
           <Link
             href="/"
-            className="bg-[#FAF7F2] border border-[#EDE6DD] px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-[#EAE2D7]/50"
+            className="bg-[#FAF7F2] border border-[#E6DFD5] px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 hover:bg-[#EAE2D7]/50"
           >
-            <ArrowLeft className="w-4 h-4" />
+            {lang === 'ar' ? (
+              <ArrowRight className="w-4 h-4" />
+            ) : (
+              <ArrowLeft className="w-4 h-4" />
+            )}
             <span>{t('back_to_store')}</span>
           </Link>
 
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={toggleLanguage}
-              className="bg-[#FAF7F2] border border-[#EDE6DD] px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
+              className="bg-[#FAF7F2] border border-[#D8D0C5] px-3.5 py-2 rounded-full text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
             >
-              <Globe className="w-3.5 h-3.5 text-[#C4A484]" />
-              {lang === 'ar' ? 'EN' : 'عربي'}
+              <Globe className="w-3.5 h-3.5 text-[#9C7E5E]" />
+              <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
             </button>
-            <div className="w-10 h-10 rounded-xl bg-[#EAE2D7] border border-[#DDD2C4] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md bg-[#DFD3C3] border border-[#D0C2B0] flex items-center justify-center">
               <span className="font-serif font-extrabold text-[#5A4D41] text-xs">RŌN</span>
             </div>
           </div>
@@ -156,14 +161,13 @@ export default function TrackOrderPage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-8">
         <div className="text-center max-w-xl mx-auto">
-          <span className="text-xs font-bold uppercase tracking-widest text-[#C4A484] block mb-2">
-            LIVE ROASTERY TRACKER
+          <span className="text-xs font-bold uppercase tracking-widest text-[#B89F86] block mb-2">
+            {t('track_badge')}
           </span>
-          <h1 className="text-3xl font-extrabold text-[#2C2825] mb-2">{t('track_page_title')}</h1>
+          <h1 className="text-3xl font-extrabold text-[#231F1E] mb-2">{t('track_page_title')}</h1>
           <p className="text-xs sm:text-sm text-stone-500">{t('track_page_subtitle')}</p>
         </div>
 
-        {/* Lookup Form */}
         <form
           onSubmit={e => {
             e.preventDefault();
@@ -189,28 +193,28 @@ export default function TrackOrderPage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-[#2C2825] text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-[#3E3834] flex items-center justify-center gap-2"
+            className="bg-[#231F1E] text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-[#3A3331] flex items-center justify-center gap-2"
           >
             <Search className="w-4 h-4" />
             <span>{loading ? '...' : t('track_btn')}</span>
           </button>
         </form>
 
-        {/* Quick pills for logged-in customer's recent orders */}
         {recentOrders.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap justify-center">
-            <span className="text-xs font-bold text-stone-500">Your Recent Orders:</span>
+            <span className="text-xs font-bold text-stone-500">{t('recent_orders_label')}</span>
             {recentOrders.map(ro => (
               <button
+                type="button"
                 key={ro.id}
                 onClick={() => {
                   const code = ro.order_number || ro.id;
                   setOrderLookup(code);
                   searchOrder(code);
                 }}
-                className="text-xs bg-white border border-[#EDE6DD] px-3 py-1.5 rounded-full font-bold hover:border-[#2C2825]"
+                className="text-xs bg-white border border-[#EDE6DD] px-3 py-1.5 rounded-full font-bold hover:border-[#231F1E]"
               >
-                {ro.order_number || ro.id.slice(0, 8)} ({ro.status})
+                {ro.order_number || ro.id.slice(0, 8)} ({translateStatus(ro.status)})
               </button>
             ))}
           </div>
@@ -218,40 +222,38 @@ export default function TrackOrderPage() {
 
         {notFound && (
           <div className="bg-white p-8 rounded-3xl border border-red-200 text-center text-xs text-red-700 font-bold">
-            Order not found. Please check your Order Number (e.g. RON-2026-XXXXXX) and try again.
+            {t('order_not_found')}
           </div>
         )}
 
-        {/* Live 5-Stage Visual Stepper */}
         {trackedOrder && (
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EDE6DD] shadow-sm space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-100 pb-6">
               <div>
-                <span className="text-xs font-bold text-[#C4A484] uppercase">
+                <span className="text-xs font-bold text-[#B89F86] uppercase">
                   {t('order_number_label')}{' '}
                   {trackedOrder.order_number || trackedOrder.id.slice(0, 8)}
                 </span>
-                <h2 className="text-xl font-extrabold text-[#2C2825] mt-0.5">
+                <h2 className="text-xl font-extrabold text-[#231F1E] mt-0.5">
                   {trackedOrder.customer_name}
                 </h2>
                 <p className="text-xs text-stone-500 flex items-center gap-1 mt-1">
-                  <MapPin className="w-3.5 h-3.5 text-[#C4A484]" />
+                  <MapPin className="w-3.5 h-3.5 text-[#B89F86]" />
                   {trackedOrder.address}, {trackedOrder.city} ({trackedOrder.postal_code})
                 </p>
               </div>
               <div className="text-end">
-                <span className="px-4 py-1.5 rounded-full text-xs font-extrabold bg-[#2C2825] text-[#EAE2D7]">
-                  {trackedOrder.status}
+                <span className="px-4 py-1.5 rounded-full text-xs font-extrabold bg-[#231F1E] text-[#EAE2D7]">
+                  {translateStatus(trackedOrder.status)}
                 </span>
                 {trackedOrder.tracking_number && (
                   <p className="text-xs font-bold text-amber-800 mt-2">
-                    {trackedOrder.courier_name || 'Courier'} Tracking: #{trackedOrder.tracking_number}
+                    {t('courier_tracking_label')} #{trackedOrder.tracking_number}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* 5-Stage Stepper */}
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
               {stages.map((st, idx) => {
                 const Icon = st.icon;
@@ -261,13 +263,13 @@ export default function TrackOrderPage() {
                     key={st.key}
                     className={`p-4 rounded-2xl border text-center transition-all ${
                       isDone
-                        ? 'bg-[#FAF7F2] border-[#2C2825] text-[#2C2825] shadow-sm'
+                        ? 'bg-[#FAF7F2] border-[#231F1E] text-[#231F1E] shadow-sm'
                         : 'bg-stone-50 border-stone-200 text-stone-400'
                     }`}
                   >
                     <div
                       className={`w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center ${
-                        isDone ? 'bg-[#2C2825] text-[#EAE2D7]' : 'bg-stone-200 text-stone-500'
+                        isDone ? 'bg-[#231F1E] text-[#EAE2D7]' : 'bg-stone-200 text-stone-500'
                       }`}
                     >
                       <Icon className="w-5 h-5" />
@@ -278,15 +280,15 @@ export default function TrackOrderPage() {
               })}
             </div>
 
-            {/* Order Items Breakdown */}
             <div className="bg-[#FAF7F2] p-5 rounded-2xl border border-[#EDE6DD] space-y-2">
               <h4 className="text-xs font-extrabold uppercase text-stone-500 mb-2">
-                Roastery Items
+                {t('roastery_items_label')}
               </h4>
               {trackedOrder.items?.map((item, i) => (
                 <div key={i} className="flex justify-between text-xs font-bold">
                   <span>
-                    {item.quantity}x {item.name} ({item.selectedWeight} • {item.selectedGrind})
+                    {item.quantity}x {lang === 'ar' && item.name_ar ? item.name_ar : item.name} (
+                    {translateOption(item.selectedWeight)} • {translateOption(item.selectedGrind)})
                   </span>
                   <span>
                     {(item.price * item.quantity).toFixed(2)} {t('currency')}
