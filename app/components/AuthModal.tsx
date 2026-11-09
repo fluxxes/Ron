@@ -1,3 +1,4 @@
+// Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
 'use client';
 
 import React, { useState } from 'react';
@@ -11,7 +12,7 @@ interface AuthModalProps {
   onAuthSubmit: (email: string, pass: string) => void;
   onAuthSuccess?: (user: any) => void;
   authError: string;
-  t: (key: string) => string;
+  t?: (key: string) => string;
 }
 
 export default function AuthModal({
@@ -38,21 +39,35 @@ export default function AuthModal({
     setLocalError('');
     setLocalSuccess('');
 
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail.includes('@')) {
+      setLocalError(lang === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Please enter a valid email');
+      return;
+    }
+
     if (mode === 'signin') {
-      onAuthSubmit(email, password);
+      onAuthSubmit(cleanEmail, password);
       return;
     }
 
     setSubmitting(true);
     try {
       if (mode === 'signup') {
+        if (password.length < 6) {
+          setLocalError(
+            lang === 'ar'
+              ? 'يجب أن تتكون كلمة المرور من 6 أحرف على الأقل'
+              : 'Password must be at least 6 characters'
+          );
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: cleanEmail,
           password,
           options: {
             data: {
-              full_name: fullName,
-              phone,
+              full_name: fullName.trim(),
+              phone: phone.trim(),
               role: 'customer',
             },
           },
@@ -63,9 +78,9 @@ export default function AuthModal({
           await supabase.from('profiles').upsert([
             {
               id: data.user.id,
-              email,
-              full_name: fullName,
-              phone,
+              email: cleanEmail,
+              full_name: fullName.trim(),
+              phone: phone.trim(),
               role: 'customer',
             },
           ]);
@@ -75,10 +90,10 @@ export default function AuthModal({
               : 'Account created successfully! You are now signed in.'
           );
           if (onAuthSuccess) onAuthSuccess(data.user);
-          setTimeout(() => onClose(), 900);
+          setTimeout(() => onClose(), 800);
         }
       } else if (mode === 'reset') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email);
+        const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail);
         if (error) setLocalError(error.message);
         else
           setLocalSuccess(

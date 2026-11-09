@@ -1,3 +1,4 @@
+// Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
 import './globals.css';
 import type { Metadata } from 'next';
 import { Cairo, Inter } from 'next/font/google';

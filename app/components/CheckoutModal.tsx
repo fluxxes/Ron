@@ -1,3 +1,4 @@
+// Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -16,6 +17,7 @@ import {
   SavedPaymentMethod,
   PaymentMethodType,
   Order,
+  CourierProviderType,
 } from '../types/coffee';
 import { useTranslation } from '../lib/useTranslation';
 import Link from 'next/link';
@@ -32,6 +34,8 @@ export interface CheckoutSubmissionPayload {
   shippingCost: number;
   paymentMethod: PaymentMethodType;
   transactionId: string;
+  courierProvider: CourierProviderType;
+  idempotencyKey: string;
   saveAddress: boolean;
   saveCard: boolean;
   newCardDetails?: {
@@ -55,6 +59,7 @@ interface CheckoutModalProps {
   user?: any;
   onCheckoutSubmit: (payload: CheckoutSubmissionPayload) => Promise<void> | void;
   onResetCheckout: () => void;
+  lang?: 'ar' | 'en';
   t: (key: string) => string;
 }
 
@@ -84,6 +89,7 @@ export default function CheckoutModal({
 
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
   const [saveAddress, setSaveAddress] = useState<boolean>(true);
+  const [courierProvider, setCourierProvider] = useState<CourierProviderType>('smsa');
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('card');
 
@@ -173,7 +179,6 @@ export default function CheckoutModal({
   const validateAndSubmit = async (e: React.FormEvent, overrideMethod?: PaymentMethodType) => {
     e.preventDefault();
     setPaymentError('');
-
     const activeMethod = overrideMethod || paymentMethod;
 
     if (!formData.name || !formData.email || !formData.address || !formData.city) {
@@ -201,7 +206,7 @@ export default function CheckoutModal({
         if (cardForm.cvv.length < 3) {
           setPaymentError(
             lang === 'ar'
-              ? 'يرجى إدخال رمز الأمان (CVV) المكون من 3 أرقام.'
+              ? 'يرجى إدخال رمز الأمان (CVV) الصحيح.'
               : 'Please enter a valid 3-digit CVV security code.'
           );
           return;
@@ -233,6 +238,7 @@ export default function CheckoutModal({
 
     setProcessingPayment(true);
     try {
+      const idempotencyKey = `idem_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       const txPrefix =
         activeMethod === 'paypal'
           ? 'PAYPAL'
@@ -249,6 +255,8 @@ export default function CheckoutModal({
         shippingCost: baseShippingCost + codFee,
         paymentMethod: activeMethod,
         transactionId,
+        courierProvider,
+        idempotencyKey,
         saveAddress: Boolean(user && selectedAddressId === 'new' && saveAddress),
         saveCard: Boolean(user && activeMethod === 'card' && selectedCardId === 'new' && saveCard),
         newCardDetails,
@@ -289,6 +297,14 @@ export default function CheckoutModal({
                     {completedOrder.order_number || completedOrder.id.slice(0, 8)}
                   </span>
                 </div>
+                {completedOrder.tracking_number && (
+                  <div className="flex justify-between font-bold">
+                    <span className="text-stone-500">{t('courier_tracking_label')}</span>
+                    <span className="text-amber-800 font-mono">
+                      {completedOrder.courier_name} ({completedOrder.tracking_number})
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-stone-500">{t('transaction_id_label')}</span>
                   <span className="font-mono text-stone-700">{completedOrder.transaction_id}</span>
@@ -346,6 +362,45 @@ export default function CheckoutModal({
               </div>
             )}
 
+            {/* Courier Partner Selection */}
+            <div className="space-y-2.5">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+                <Truck className="w-4 h-4 text-[#C4A484]" />
+                <span>{t('courier_select_title')}</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCourierProvider('smsa')}
+                  className={`p-3.5 rounded-2xl border text-start flex justify-between items-center transition-all ${
+                    courierProvider === 'smsa'
+                      ? 'border-[#231F1E] bg-[#FAF7F2] shadow-sm'
+                      : 'border-stone-200'
+                  }`}
+                >
+                  <span className="text-xs font-bold text-[#231F1E]">{t('courier_smsa')}</span>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#EAE2D7] text-[#231F1E]">
+                    AWB Auto
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCourierProvider('saudi_post')}
+                  className={`p-3.5 rounded-2xl border text-start flex justify-between items-center transition-all ${
+                    courierProvider === 'saudi_post'
+                      ? 'border-[#231F1E] bg-[#FAF7F2] shadow-sm'
+                      : 'border-stone-200'
+                  }`}
+                >
+                  <span className="text-xs font-bold text-[#231F1E]">{t('courier_spl')}</span>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#EAE2D7] text-[#231F1E]">
+                    SPL Auto
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Shipping Address Section */}
             <div className="space-y-3">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-[#C4A484]" />
@@ -366,7 +421,7 @@ export default function CheckoutModal({
                       }`}
                     >
                       <div className="font-extrabold text-xs text-[#231F1E]">
-                        {addr.label} — {addr.recipient_name}
+                        {addr.label} • {addr.recipient_name}
                       </div>
                       <div className="text-[11px] text-stone-500 truncate mt-0.5">
                         {addr.address_line1}, {addr.city}
@@ -462,6 +517,7 @@ export default function CheckoutModal({
               )}
             </div>
 
+            {/* Shipping Speed */}
             <div className="space-y-2.5">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
                 <Truck className="w-4 h-4 text-[#C4A484]" />
@@ -499,12 +555,12 @@ export default function CheckoutModal({
               </div>
             </div>
 
+            {/* Payment Method */}
             <div className="space-y-3">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
                 <CreditCard className="w-4 h-4 text-[#C4A484]" />
                 <span>{t('payment_method_title')}</span>
               </h4>
-
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { key: 'card', label: t('pay_card') },
@@ -669,6 +725,7 @@ export default function CheckoutModal({
               )}
             </div>
 
+            {/* Totals Breakdown */}
             <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#EDE6DD] space-y-1.5 text-xs">
               <div className="flex justify-between text-stone-600">
                 <span>{t('subtotal')}</span>

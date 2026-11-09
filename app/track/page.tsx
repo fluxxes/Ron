@@ -1,8 +1,10 @@
+// Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Order } from '../types/coffee';
+import { getLiveCourierCheckpoints } from '../lib/deliveryService';
 import { useTranslation } from '../lib/useTranslation';
 import {
   Search,
@@ -19,42 +21,42 @@ import {
 import Link from 'next/link';
 
 export default function TrackOrderPage() {
-  const { lang, t, toggleLanguage, translateOption, translateStatus } = useTranslation();
+  const { lang, t, toggleLanguage, translateStatus } = useTranslation();
   const [orderLookup, setOrderLookup] = useState('');
   const [contactInput, setContactInput] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
   const searchOrder = useCallback(async (lookupValue: string, contactValue = '') => {
-    if (!lookupValue.trim()) return;
+    const clean = lookupValue.trim();
+    if (!clean) return;
     setLoading(true);
     setNotFound(false);
-
     try {
-      const { data: rpcResult, error: rpcErr } = await supabase.rpc('get_order_tracking', {
-        p_order_lookup: lookupValue.trim(),
+      const { data: rpcResult } = await supabase.rpc('get_order_tracking', {
+        p_order_lookup: clean,
         p_contact: contactValue.trim(),
       });
-
-      if (!rpcErr && rpcResult) {
+      if (rpcResult) {
         setTrackedOrder(rpcResult as Order);
         return;
       }
 
-      const { data: directOrders } = await supabase
+      // Direct fallback query if RPC hasn't been created yet
+      const { data: fallbackOrder } = await supabase
         .from('orders')
         .select('*')
-        .or(`order_number.ilike.${lookupValue.trim()},id.eq.${lookupValue.trim()}`)
-        .limit(1);
+        .or(`order_number.ilike.${clean},tracking_number.ilike.${clean}`)
+        .limit(1)
+        .maybeSingle();
 
-      if (directOrders && directOrders.length > 0) {
-        setTrackedOrder(directOrders[0]);
-      } else {
-        setTrackedOrder(null);
-        setNotFound(true);
+      if (fallbackOrder) {
+        setTrackedOrder(fallbackOrder as Order);
+        return;
       }
+      setTrackedOrder(null);
+      setNotFound(true);
     } finally {
       setLoading(false);
     }
@@ -63,29 +65,16 @@ export default function TrackOrderPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      const initialOrder = params.get('order');
-      if (initialOrder) {
-        setOrderLookup(initialOrder);
-        searchOrder(initialOrder);
+      const orderParam = params.get('order');
+      if (orderParam) {
+        setOrderLookup(orderParam);
+        void searchOrder(orderParam);
       }
     }
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const { data } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
-        if (data) setRecentOrders(data);
-      }
-    });
   }, [searchOrder]);
 
   useEffect(() => {
     if (!trackedOrder?.id) return;
-
     const channel = supabase
       .channel(`order-track-${trackedOrder.id}`)
       .on(
@@ -97,13 +86,10 @@ export default function TrackOrderPage() {
           filter: `id=eq.${trackedOrder.id}`,
         },
         payload => {
-          if (payload.new) {
-            setTrackedOrder(payload.new as Order);
-          }
+          if (payload.new) setTrackedOrder(payload.new as Order);
         }
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
@@ -126,6 +112,13 @@ export default function TrackOrderPage() {
   };
 
   const currentStep = trackedOrder ? getActiveStepIndex(trackedOrder.status) : 0;
+  const courierCheckpoints = trackedOrder
+    ? getLiveCourierCheckpoints(
+        trackedOrder.courier_provider || 'smsa',
+        trackedOrder.tracking_number || '',
+        trackedOrder.city
+      )
+    : [];
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#231F1E]">
@@ -142,20 +135,14 @@ export default function TrackOrderPage() {
             )}
             <span>{t('back_to_store')}</span>
           </Link>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className="bg-[#FAF7F2] border border-[#D8D0C5] px-3.5 py-2 rounded-full text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
-            >
-              <Globe className="w-3.5 h-3.5 text-[#9C7E5E]" />
-              <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
-            </button>
-            <div className="w-10 h-10 rounded-md bg-[#DFD3C3] border border-[#D0C2B0] flex items-center justify-center">
-              <span className="font-serif font-extrabold text-[#5A4D41] text-xs">RŌN</span>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="bg-[#FAF7F2] border border-[#D8D0C5] px-3.5 py-2 rounded-full text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+          >
+            <Globe className="w-3.5 h-3.5 text-[#9C7E5E]" />
+            <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
+          </button>
         </div>
       </header>
 
@@ -171,7 +158,7 @@ export default function TrackOrderPage() {
         <form
           onSubmit={e => {
             e.preventDefault();
-            searchOrder(orderLookup, contactInput);
+            void searchOrder(orderLookup, contactInput);
           }}
           className="bg-white p-6 rounded-3xl border border-[#EDE6DD] shadow-sm flex flex-col sm:flex-row gap-3"
         >
@@ -188,7 +175,7 @@ export default function TrackOrderPage() {
             placeholder={t('track_contact_placeholder')}
             value={contactInput}
             onChange={e => setContactInput(e.target.value)}
-            className="flex-1 bg-[#FAF7F2] border border-[#EDE6DD] rounded-2xl px-4 py-3 text-xs"
+            className="sm:w-64 bg-[#FAF7F2] border border-[#EDE6DD] rounded-2xl px-4 py-3 text-xs"
           />
           <button
             type="submit"
@@ -199,26 +186,6 @@ export default function TrackOrderPage() {
             <span>{loading ? '...' : t('track_btn')}</span>
           </button>
         </form>
-
-        {recentOrders.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap justify-center">
-            <span className="text-xs font-bold text-stone-500">{t('recent_orders_label')}</span>
-            {recentOrders.map(ro => (
-              <button
-                type="button"
-                key={ro.id}
-                onClick={() => {
-                  const code = ro.order_number || ro.id;
-                  setOrderLookup(code);
-                  searchOrder(code);
-                }}
-                className="text-xs bg-white border border-[#EDE6DD] px-3 py-1.5 rounded-full font-bold hover:border-[#231F1E]"
-              >
-                {ro.order_number || ro.id.slice(0, 8)} ({translateStatus(ro.status)})
-              </button>
-            ))}
-          </div>
-        )}
 
         {notFound && (
           <div className="bg-white p-8 rounded-3xl border border-red-200 text-center text-xs text-red-700 font-bold">
@@ -237,9 +204,8 @@ export default function TrackOrderPage() {
                 <h2 className="text-xl font-extrabold text-[#231F1E] mt-0.5">
                   {trackedOrder.customer_name}
                 </h2>
-                <p className="text-xs text-stone-500 flex items-center gap-1 mt-1">
-                  <MapPin className="w-3.5 h-3.5 text-[#B89F86]" />
-                  {trackedOrder.address}, {trackedOrder.city} ({trackedOrder.postal_code})
+                <p className="text-xs text-stone-500 mt-0.5">
+                  {trackedOrder.address}, {trackedOrder.city}
                 </p>
               </div>
               <div className="text-end">
@@ -248,7 +214,15 @@ export default function TrackOrderPage() {
                 </span>
                 {trackedOrder.tracking_number && (
                   <p className="text-xs font-bold text-amber-800 mt-2">
-                    {t('courier_tracking_label')} #{trackedOrder.tracking_number}
+                    <a
+                      href={trackedOrder.waybill_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:underline"
+                    >
+                      {trackedOrder.courier_name} • {t('courier_tracking_label')} #
+                      {trackedOrder.tracking_number}
+                    </a>
                   </p>
                 )}
               </div>
@@ -280,26 +254,31 @@ export default function TrackOrderPage() {
               })}
             </div>
 
-            <div className="bg-[#FAF7F2] p-5 rounded-2xl border border-[#EDE6DD] space-y-2">
-              <h4 className="text-xs font-extrabold uppercase text-stone-500 mb-2">
-                {t('roastery_items_label')}
-              </h4>
-              {trackedOrder.items?.map((item, i) => (
-                <div key={i} className="flex justify-between text-xs font-bold">
-                  <span>
-                    {item.quantity}x {lang === 'ar' && item.name_ar ? item.name_ar : item.name} (
-                    {translateOption(item.selectedWeight)} • {translateOption(item.selectedGrind)})
-                  </span>
-                  <span>
-                    {(item.price * item.quantity).toFixed(2)} {t('currency')}
-                  </span>
-                </div>
-              ))}
-              <div className="flex justify-between text-sm font-extrabold pt-2 border-t border-[#EDE6DD]">
-                <span>{t('total')}</span>
+            {/* Live Courier Checkpoints */}
+            <div className="bg-[#FAF7F2] p-5 rounded-2xl border border-[#EDE6DD] space-y-3">
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#231F1E] flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-[#C4A484]" />
                 <span>
-                  {trackedOrder.total_amount.toFixed(2)} {t('currency')}
+                  {lang === 'ar'
+                    ? 'سجل التتبع المباشر لشركة الشحن'
+                    : 'Live Courier Dispatch Checkpoints'}
                 </span>
+              </h3>
+              <div className="space-y-2.5">
+                {courierCheckpoints.map((cp, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between text-xs bg-white p-3 rounded-xl border border-[#EDE6DD]"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="font-bold text-[#231F1E]">
+                        {lang === 'ar' ? cp.stage_ar : cp.stage}
+                      </span>
+                    </div>
+                    <span className="text-stone-400 font-mono">{cp.location}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

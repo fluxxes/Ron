@@ -1,3 +1,4 @@
+// Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
 'use client';
 
 import React from 'react';
@@ -35,7 +36,6 @@ export default function CartDrawer({
     <div className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-sm flex justify-end">
       <div className="bg-[#FAF7F2] w-full max-w-md h-full flex flex-col shadow-2xl border-s border-[#EDE6DD]">
         
-        {/* Drawer Header */}
         <div className="p-6 bg-white border-b border-[#EDE6DD] flex items-center justify-between">
           <h3 className="font-extrabold text-lg text-[#231F1E] flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-[#C4A484]" />
@@ -53,7 +53,6 @@ export default function CartDrawer({
           </button>
         </div>
 
-        {/* Free Shipping Progress Bar */}
         <div className="px-6 py-3 bg-[#EAE2D7]/50 border-b border-[#EDE6DD]">
           <div className="flex items-center gap-2 text-xs font-bold text-[#231F1E] mb-1.5">
             <Truck className="w-4 h-4 text-[#5A4D41]" />
@@ -73,7 +72,6 @@ export default function CartDrawer({
           </div>
         </div>
 
-        {/* Cart Items */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {cart.length === 0 ? (
             <div className="text-center py-24">
@@ -138,7 +136,6 @@ export default function CartDrawer({
           )}
         </div>
 
-        {/* Drawer Footer */}
         {cart.length > 0 && (
           <div className="p-6 border-t border-[#EDE6DD] bg-white space-y-4">
             <div className="flex justify-between font-extrabold text-lg text-[#231F1E]">

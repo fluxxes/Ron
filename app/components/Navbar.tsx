@@ -1,3 +1,4 @@
+// Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
 'use client';
 
 import React, { useState } from 'react';
@@ -44,10 +45,9 @@ export default function Navbar({
     <header className="sticky top-0 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E6DFD5]">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between gap-4">
         
-        {/* Brand Logo Box (On Right in RTL, Left in LTR - matches Reference Screenshot) */}
         <div className="flex items-center gap-2.5">
           <Link href="/" className="flex items-center group">
-            <div className="w-12 h-12 rounded-none sm:rounded-md bg-[#DFD3C3] border border-[#D0C2B0] flex flex-col items-center justify-center shadow-sm group-hover:opacity-90 transition-all">
+            <div className="w-12 h-12 rounded-md bg-[#DFD3C3] border border-[#D0C2B0] flex flex-col items-center justify-center shadow-sm group-hover:opacity-90 transition-all">
               <span className="font-serif font-bold tracking-widest text-[#5C4938] text-xs leading-none">
                 RŌN
               </span>
@@ -67,7 +67,6 @@ export default function Navbar({
           </button>
         </div>
 
-        {/* Center Navigation Links matching Reference Image */}
         <nav className="hidden lg:flex items-center gap-8 text-xs sm:text-sm font-bold text-[#3D3734]">
           <Link href="/" className="hover:text-black transition-colors">
             {t('nav_home')}
@@ -90,9 +89,7 @@ export default function Navbar({
           </Link>
         </nav>
 
-        {/* Action Controls (On Left in RTL, Right in LTR - matches Reference Screenshot) */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Language Toggle Pill */}
           <button
             type="button"
             onClick={onToggleLang}
@@ -145,7 +142,6 @@ export default function Navbar({
             </button>
           )}
 
-          {/* Minimalist Shopping Bag Icon matching Reference Screenshot */}
           <button
             type="button"
             onClick={onOpenCart}
@@ -162,7 +158,6 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* Mobile Dropdown Navigation Drawer */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-white border-b border-[#E6DFD5] px-4 py-4 space-y-2 shadow-lg">
           <div className="grid grid-cols-2 gap-2">

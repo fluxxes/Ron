@@ -1,8 +1,11 @@
+// Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
+
 export type ProductCategory = 'Crops' | 'Boxes' | 'Tools';
 export type RoastLevel = 'Light' | 'Medium' | 'Dark';
 export type OrderStatus = 'Processing' | 'Roasted & Packed' | 'Shipped' | 'Completed' | 'Cancelled';
 export type PaymentMethodType = 'paypal' | 'apple_pay' | 'card' | 'cod';
 export type PaymentStatusType = 'Paid' | 'Pending' | 'Failed' | 'Refunded';
+export type CourierProviderType = 'smsa' | 'saudi_post';
 
 export interface Product {
   id: string;
@@ -51,6 +54,7 @@ export interface OrderStatusHistory {
 export interface Order {
   id: string;
   order_number?: string;
+  idempotency_key?: string;
   user_id?: string | null;
   customer_name: string;
   customer_email: string;
@@ -67,13 +71,42 @@ export interface Order {
   payment_status?: PaymentStatusType;
   transaction_id?: string;
   status: OrderStatus;
-  tracking_number?: string;
+  courier_provider?: CourierProviderType;
   courier_name?: string;
+  tracking_number?: string;
+  waybill_url?: string;
+  auto_fulfilled?: boolean;
+  estimated_delivery?: string;
   staff_notes?: string;
   items: CartItem[];
   status_history?: OrderStatusHistory[];
   created_at: string;
   updated_at?: string;
+}
+
+export interface TicketMessage {
+  id: string;
+  sender_role: 'customer' | 'staff';
+  sender_name: string;
+  body: string;
+  created_at: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  ticket_number: string;
+  user_id?: string | null;
+  order_id?: string | null;
+  order_number?: string;
+  customer_name: string;
+  customer_email: string;
+  subject: string;
+  category: 'Order Issue' | 'Shipping & Courier' | 'Coffee Quality' | 'Payment & Billing' | 'Other';
+  priority: 'Low' | 'Normal' | 'High' | 'Urgent';
+  status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+  messages: TicketMessage[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CustomerProfile {

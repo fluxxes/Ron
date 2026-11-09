@@ -1,15 +1,11 @@
+// Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from './lib/supabase';
-import {
-  Product,
-  CartItem,
-  Order,
-  CustomerAddress,
-  SavedPaymentMethod,
-} from './types/coffee';
-import { PRODUCTS, BREW_GUIDES, localizeProduct } from './data/products';
+import { supabase, getSecureCartSessionKey } from './lib/supabase';
+import { Product, CartItem, Order, CustomerAddress, SavedPaymentMethod } from './types/coffee';
+import { localizeProduct, BREW_GUIDES } from './data/products';
+import { createCourierShipment } from './lib/deliveryService';
 import Navbar from './components/Navbar';
 import ProductGrid from './components/ProductGrid';
 import CartDrawer from './components/CartDrawer';
@@ -32,18 +28,15 @@ import Link from 'next/link';
 
 export default function RonStore() {
   const { lang, t, toggleLanguage, translateOption } = useTranslation();
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedRoast, setSelectedRoast] = useState<string>('All');
-
   const [banner, setBanner] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const showBanner = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setBanner({ message, type });
-    setTimeout(() => {
-      setBanner(prev => (prev?.message === message ? null : prev));
-    }, 4000);
+    setTimeout(() => setBanner(null), 4000);
   }, []);
 
   const [user, setUser] = useState<any>(null);
@@ -59,36 +52,17 @@ export default function RonStore() {
   const [selectedWeight, setSelectedWeight] = useState('250g');
   const [selectedGrind, setSelectedGrind] = useState('Whole Bean');
   const [quickViewQty, setQuickViewQty] = useState(1);
-
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
-  const getWeightMultiplier = (product: Product, chosenWeight: string) => {
-    if (product.category === 'Tools' || product.category === 'Boxes') return 1;
-    const baseWeight = product.weight_options?.[0] || '250g';
-    if (chosenWeight === baseWeight) return 1;
-    if (baseWeight === '250g') {
-      if (chosenWeight === '500g') return 1.85;
-      if (chosenWeight === '1kg') return 3.4;
-    }
-    return 1;
-  };
-
   const fetchProducts = useCallback(async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('products')
       .select('*')
       .order('created_at', { ascending: false });
-
-    if (!error && data && data.length > 0) {
-      // Merge database products with our reference products & full Arabic/English translations
-      const localizedDb = data.map(item => localizeProduct(item));
-      const existingIds = new Set(localizedDb.map(i => i.id));
-      const missingReferenceProducts = PRODUCTS.filter(p => !existingIds.has(p.id));
-      setProducts([...localizedDb, ...missingReferenceProducts]);
-    } else {
-      setProducts(PRODUCTS);
+    if (data) {
+      setProducts(data.map(item => localizeProduct(item)));
     }
   }, []);
 
@@ -131,49 +105,69 @@ export default function RonStore() {
       }
     });
 
-    if (typeof window !== 'undefined') {
-      const savedCart = localStorage.getItem('ron_cart');
-      if (savedCart) {
-        try {
-          setCart(JSON.parse(savedCart));
-        } catch {}
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        fetchAccountData(session.user.id, session.user.email);
+      } else {
+        setUser(null);
+        setUserRole('customer');
+        setAddresses([]);
+        setPaymentMethods([]);
+        setCustomerOrders([]);
       }
-    }
-  }, [fetchProducts, fetchAccountData]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ron_cart', JSON.stringify(cart));
-    }
-  }, [cart]);
-
-  const handleAuthSubmit = async (email: string, pass: string) => {
-    setAuthError('');
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: pass,
     });
-    if (error) {
-      setAuthError(error.message);
-    } else if (data.user) {
-      setUser(data.user);
-      await fetchAccountData(data.user.id, data.user.email);
-      setIsAuthOpen(false);
-      showBanner(
-        lang === 'ar' ? 'تم تسجيل الدخول بنجاح' : 'Signed in successfully!',
-        'success'
-      );
-    }
-  };
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [fetchProducts, fetchAccountData]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setUserRole('customer');
-    setAddresses([]);
-    setPaymentMethods([]);
-    setCustomerOrders([]);
-    showBanner(lang === 'ar' ? 'تم تسجيل الخروج بنجاح' : 'Signed out.', 'success');
+    setIsAccountOpen(false);
+    showBanner(lang === 'ar' ? 'تم تسجيل الخروج بنجاح' : 'Signed out successfully', 'success');
+  };
+
+  const syncCartToDatabase = async (
+    productId: string,
+    weight: string,
+    grind: string,
+    quantity: number
+  ) => {
+    try {
+      const sessionKey = getSecureCartSessionKey(user?.id);
+      if (quantity <= 0) {
+        await supabase
+          .from('cart_items')
+          .delete()
+          .match({
+            session_key: sessionKey,
+            product_id: productId,
+            selected_weight: weight,
+            selected_grind: grind,
+          });
+      } else {
+        await supabase.from('cart_items').upsert(
+          [
+            {
+              user_id: user?.id || null,
+              session_key: sessionKey,
+              product_id: productId,
+              selected_weight: weight,
+              selected_grind: grind,
+              quantity,
+              updated_at: new Date().toISOString(),
+            },
+          ],
+          { onConflict: 'session_key,product_id,selected_weight,selected_grind' }
+        );
+      }
+    } catch {
+      // Non-blocking cart persistence fallback
+    }
   };
 
   const addToCart = (
@@ -184,18 +178,35 @@ export default function RonStore() {
     openDrawer = false
   ) => {
     const product = localizeProduct(rawProduct);
+    if (product.stock_quantity <= 0) {
+      showBanner(t('out_of_stock'), 'error');
+      return;
+    }
+
     const isTool = product.category === 'Tools';
     const finalWeight = isTool ? 'Standard' : weight || product.weight_options?.[0] || '250g';
     const finalGrind = isTool ? 'Kit' : grind || product.grind_options?.[0] || 'Whole Bean';
-    const unitPrice = Number((product.price * getWeightMultiplier(product, finalWeight)).toFixed(2));
+    const mult =
+      product.category === 'Crops'
+        ? finalWeight === '500g'
+          ? 1.85
+          : finalWeight === '1kg'
+          ? 3.4
+          : 1
+        : 1;
+    const unitPrice = Number((product.price * mult).toFixed(2));
     const cartItemId = `${product.id}-${finalWeight}-${finalGrind}`;
 
     setCart(prev => {
       const existing = prev.find(item => item.id === cartItemId);
+      const nextQty = existing
+        ? Math.min(product.stock_quantity, existing.quantity + qty)
+        : Math.min(product.stock_quantity, qty);
+
+      void syncCartToDatabase(product.id, finalWeight, finalGrind, nextQty);
+
       if (existing) {
-        return prev.map(item =>
-          item.id === cartItemId ? { ...item, quantity: item.quantity + qty } : item
-        );
+        return prev.map(item => (item.id === cartItemId ? { ...item, quantity: nextQty } : item));
       }
       return [
         ...prev,
@@ -208,7 +219,7 @@ export default function RonStore() {
           image: product.image,
           selectedWeight: finalWeight,
           selectedGrind: finalGrind,
-          quantity: qty,
+          quantity: nextQty,
         },
       ];
     });
@@ -216,41 +227,40 @@ export default function RonStore() {
     if (openDrawer) {
       setIsCartOpen(true);
     } else {
-      const title = lang === 'ar' && product.name_ar ? product.name_ar : product.name;
       showBanner(
-        lang === 'ar' ? `تمت إضافة "${title}" للسلة` : `Added "${title}" to cart`,
+        lang === 'ar'
+          ? `تمت إضافة "${product.name_ar || product.name}" إلى السلة`
+          : `Added "${product.name}" to cart`,
         'success'
       );
     }
   };
 
   const updateQuantity = (id: string, delta: number) => {
-    setCart(
-      prev =>
-        prev
-          .map(item =>
-            item.id === id
-              ? item.quantity + delta > 0
-                ? { ...item, quantity: item.quantity + delta }
-                : null
-              : item
-          )
-          .filter(Boolean) as CartItem[]
+    setCart(prev =>
+      prev
+        .map(item => {
+          if (item.id !== id) return item;
+          const nextQty = item.quantity + delta;
+          void syncCartToDatabase(
+            item.productId,
+            item.selectedWeight,
+            item.selectedGrind,
+            nextQty
+          );
+          return nextQty > 0 ? { ...item, quantity: nextQty } : null;
+        })
+        .filter(Boolean) as CartItem[]
     );
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const totalCartItems = cart.reduce((s, i) => s + i.quantity, 0);
-
   const handleCheckoutSubmit = async (payload: CheckoutSubmissionPayload) => {
-    const totalAmount = subtotal + payload.shippingCost;
-    const generatedOrderNum = `RON-2026-${Math.floor(100000 + Math.random() * 900000)}`;
-
+    // 1. Optional Save Address / Save Card for logged-in customer
     if (user && payload.saveAddress) {
       await supabase.from('customer_addresses').insert([
         {
           user_id: user.id,
-          label: lang === 'ar' ? 'المنزل' : 'Home',
+          label: lang === 'ar' ? 'عنوان الشحن' : 'Shipping',
           recipient_name: payload.name,
           phone: payload.phone,
           country: 'Saudi Arabia',
@@ -269,18 +279,37 @@ export default function RonStore() {
         {
           user_id: user.id,
           method_type: 'card',
+          cardholder_name: payload.newCardDetails.cardholder_name,
           card_brand: payload.newCardDetails.card_brand,
           last4: payload.newCardDetails.last4,
           exp_month: payload.newCardDetails.exp_month,
           exp_year: payload.newCardDetails.exp_year,
-          cardholder_name: payload.newCardDetails.cardholder_name,
-          gateway_token: `tok_ron_${Date.now()}`,
+          gateway_token: `tok_${Date.now()}`,
           is_default: paymentMethods.length === 0,
         },
       ]);
     }
 
+    // 2. Generate Automated Courier Waybill (SMSA Express or Saudi Post SPL)
+    const courierRes = await createCourierShipment({
+      provider: payload.courierProvider,
+      orderNumber: '',
+      recipientName: payload.name,
+      recipientPhone: payload.phone,
+      recipientEmail: payload.email,
+      city: payload.city,
+      address: payload.address,
+      postalCode: payload.postalCode,
+      nationalAddress: payload.nationalAddress,
+      codAmount: payload.paymentMethod === 'cod' ? subtotal + payload.shippingCost : 0,
+      weightKg: Math.max(0.5, cart.reduce((s, i) => s + i.quantity * 0.25, 0)),
+      items: cart,
+    });
+
+    // 3. Server-Side Atomic Order Placement & Price Calculation RPC
     const { data: rpcOrder, error: rpcError } = await supabase.rpc('create_order_atomic', {
+      p_idempotency_key: payload.idempotencyKey,
+      p_session_key: getSecureCartSessionKey(user?.id),
       p_user_id: user?.id || null,
       p_customer_name: payload.name,
       p_customer_email: payload.email,
@@ -290,64 +319,26 @@ export default function RonStore() {
       p_postal_code: payload.postalCode,
       p_national_address: payload.nationalAddress,
       p_shipping_method: payload.shippingMethod,
-      p_shipping_cost: payload.shippingCost,
-      p_subtotal: subtotal,
-      p_total_amount: totalAmount,
       p_payment_method: payload.paymentMethod,
-      p_payment_status: payload.paymentMethod === 'cod' ? 'Pending' : 'Paid',
       p_transaction_id: payload.transactionId,
+      p_courier_provider: payload.courierProvider,
+      p_tracking_number: courierRes.trackingNumber,
+      p_waybill_url: courierRes.waybillUrl,
       p_items: cart,
     });
 
-    if (!rpcError && rpcOrder) {
-      setCompletedOrder(rpcOrder as Order);
-    } else {
-      const fallbackOrderData = {
-        order_number: generatedOrderNum,
-        user_id: user?.id || null,
-        customer_name: payload.name,
-        customer_email: payload.email,
-        customer_phone: payload.phone,
-        address: payload.address,
-        city: payload.city,
-        postal_code: payload.postalCode,
-        national_address: payload.nationalAddress,
-        shipping_method: payload.shippingMethod,
-        shipping_cost: payload.shippingCost,
-        subtotal,
-        total_amount: totalAmount,
-        payment_method: payload.paymentMethod,
-        payment_status: payload.paymentMethod === 'cod' ? 'Pending' : 'Paid',
-        transaction_id: payload.transactionId,
-        status: 'Processing' as const,
-        items: cart,
-      };
-
-      const { data: inserted } = await supabase
-        .from('orders')
-        .insert([fallbackOrderData])
-        .select('*')
-        .single();
-
-      for (const item of cart) {
-        const target = products.find(p => p.id === item.productId);
-        if (target) {
-          await supabase
-            .from('products')
-            .update({ stock_quantity: Math.max(0, target.stock_quantity - item.quantity) })
-            .eq('id', item.productId);
-        }
-      }
-
-      setCompletedOrder(
-        (inserted as Order) || {
-          ...fallbackOrderData,
-          id: generatedOrderNum,
-          created_at: new Date().toISOString(),
-        }
+    if (rpcError || !rpcOrder) {
+      showBanner(
+        rpcError?.message ||
+          (lang === 'ar'
+            ? 'تعذر إتمام الطلب. يرجى التحقق من المخزون والمحاولة مرة أخرى.'
+            : 'Could not place order. Please check stock and try again.'),
+        'error'
       );
+      return;
     }
 
+    setCompletedOrder(rpcOrder as Order);
     await fetchProducts();
     if (user) await fetchAccountData(user.id, user.email);
     setOrderComplete(true);
@@ -355,31 +346,35 @@ export default function RonStore() {
     showBanner(t('order_placed'), 'success');
   };
 
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totalCartItems = cart.reduce((s, i) => s + i.quantity, 0);
+
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#231F1E] pb-20 sm:pb-0">
-      
       {/* In-Website Notification Banner */}
       {banner && (
-        <div
-          className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-xl border flex items-center gap-2 text-xs font-bold transition-all max-w-[92vw] ${
-            banner.type === 'error'
-              ? 'bg-red-950 text-red-100 border-red-800'
-              : 'bg-[#231F1E] text-[#FAF7F2] border-[#C4A484]'
-          }`}
-        >
-          {banner.type === 'error' ? (
-            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 text-[#C4A484] shrink-0" />
-          )}
-          <span className="truncate">{banner.message}</span>
-          <button
-            type="button"
-            onClick={() => setBanner(null)}
-            className="ms-1 opacity-70 hover:opacity-100"
+        <div className="fixed top-24 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+          <div
+            className={`pointer-events-auto flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-xl border text-xs font-extrabold transition-all ${
+              banner.type === 'error'
+                ? 'bg-red-950 text-red-100 border-red-800'
+                : 'bg-[#231F1E] text-[#EAE2D7] border-[#5A4D41]'
+            }`}
           >
-            <X className="w-3.5 h-3.5" />
-          </button>
+            {banner.type === 'error' ? (
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            )}
+            <span>{banner.message}</span>
+            <button
+              type="button"
+              onClick={() => setBanner(null)}
+              className="ms-2 opacity-70 hover:opacity-100"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -404,89 +399,82 @@ export default function RonStore() {
           onSelectRoast={setSelectedRoast}
           lang={lang}
           onSelectProduct={p => {
-            const loc = localizeProduct(p);
-            setQuickViewProduct(loc);
-            setSelectedWeight(loc.weight_options?.[0] || '250g');
-            setSelectedGrind(loc.grind_options?.[0] || 'Whole Bean');
+            setQuickViewProduct(p);
+            setSelectedWeight(p.weight_options?.[0] || '250g');
+            setSelectedGrind(p.grind_options?.[0] || 'Whole Bean');
             setQuickViewQty(1);
           }}
-          onQuickAdd={p => {
-            addToCart(p, p.weight_options?.[0], p.grind_options?.[0], 1, false);
-          }}
+          onQuickAdd={p => addToCart(p, p.weight_options?.[0], p.grind_options?.[0], 1, false)}
           onUpdateCartQuantity={updateQuantity}
           t={t}
         />
 
-        {/* Dark Espresso Rounded Feature Container matching the bottom of the Reference Image */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="bg-[#231F1E] text-[#FAF7F2] rounded-[32px] p-8 sm:p-12 shadow-xl relative overflow-hidden">
-            <div className="max-w-2xl relative z-10">
-              <span className="text-[#C4A484] text-xs font-bold uppercase tracking-widest block mb-2">
+        {/* Automated Roastery & Courier Highlight Banner */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="bg-[#231F1E] text-[#FAF7F2] rounded-3xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
+            <div className="space-y-3 max-w-2xl">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-[#C4A484]">
                 {t('roastery_banner_badge')}
               </span>
-              <h2 className="text-2xl sm:text-4xl font-extrabold mb-3 leading-tight">
+              <h2 className="text-2xl sm:text-4xl font-black leading-tight">
                 {t('roastery_banner_title')}
               </h2>
-              <p className="text-stone-300 text-xs sm:text-sm leading-relaxed mb-6">
+              <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
                 {t('roastery_banner_desc')}
               </p>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/track"
-                  className="bg-[#EAE2D7] text-[#231F1E] px-6 py-3 rounded-full text-xs font-extrabold hover:bg-white transition-all inline-flex items-center gap-2"
-                >
-                  <Truck className="w-4 h-4" />
-                  <span>{t('track_your_order')}</span>
-                </Link>
-              </div>
             </div>
+            <Link
+              href="/track"
+              className="bg-[#EAE2D7] text-[#231F1E] px-7 py-4 rounded-2xl text-xs sm:text-sm font-extrabold hover:bg-white transition-all flex items-center gap-2 shrink-0"
+            >
+              <Truck className="w-4 h-4 text-[#8C735B]" />
+              <span>{t('nav_track')}</span>
+            </Link>
           </div>
         </section>
 
         {/* Brew Guides Section */}
-        <section
-          id="brew-guides"
-          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 border-t border-[#E6DFD5]"
-        >
-          <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
-            <span className="text-[#B89F86] font-bold text-xs uppercase tracking-wider block mb-2">
+        <section id="brew-guides" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#B89F86] block mb-1">
               {t('brew_guides_badge')}
             </span>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-[#231F1E] mb-2">
+            <h2 className="text-2xl sm:text-4xl font-black text-[#231F1E]">
               {t('brew_guides_title')}
             </h2>
-            <p className="text-stone-500 text-xs sm:text-sm">{t('brew_guides_subtitle')}</p>
+            <p className="text-xs sm:text-sm text-stone-500 mt-2">{t('brew_guides_subtitle')}</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {BREW_GUIDES.map((guide, idx) => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {BREW_GUIDES.map((g, i) => (
               <div
-                key={idx}
-                className="bg-white rounded-3xl p-6 border border-[#ECE6DF] shadow-sm hover:shadow-md transition-all"
+                key={i}
+                className="bg-white p-6 rounded-3xl border border-[#EDE6DD] shadow-sm space-y-4"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-2xl bg-[#EAE2D7] text-[#5A4D41] flex items-center justify-center">
-                    <Coffee className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-bold bg-[#FAF7F2] border border-[#EDE6DD] px-3 py-1 rounded-full flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-[#C4A484]" />
-                    {lang === 'ar' ? guide.time_ar : guide.time}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-extrabold text-lg text-[#231F1E]">
+                    {lang === 'ar' ? g.method_ar : g.method}
+                  </h3>
+                  <Coffee className="w-5 h-5 text-[#C4A484]" />
                 </div>
-                <h3 className="text-lg font-extrabold text-[#231F1E] mb-2">
-                  {lang === 'ar' ? guide.method_ar : guide.method}
-                </h3>
-                <p className="text-xs text-[#9C7E5E] font-bold mb-1">
-                  {lang === 'ar' ? guide.ratio_ar : guide.ratio}
-                </p>
-                <p className="text-xs text-stone-500 mb-4">
-                  {lang === 'ar' ? guide.grind_ar : guide.grind}
-                </p>
-                <ol className="space-y-2 text-xs text-stone-600 border-t border-stone-100 pt-4">
-                  {(lang === 'ar' ? guide.steps_ar : guide.steps).map((step, sIdx) => (
-                    <li key={sIdx} className="flex gap-2">
-                      <span className="font-extrabold text-[#231F1E]">{sIdx + 1}.</span>
-                      <span>{step}</span>
+                <div className="text-xs space-y-1 bg-[#FAF7F2] p-3.5 rounded-2xl border border-[#EDE6DD]">
+                  <p>
+                    <strong>{lang === 'ar' ? 'النسبة:' : 'Ratio:'}</strong>{' '}
+                    {lang === 'ar' ? g.ratio_ar : g.ratio}
+                  </p>
+                  <p>
+                    <strong>{lang === 'ar' ? 'الطحنة:' : 'Grind:'}</strong>{' '}
+                    {lang === 'ar' ? g.grind_ar : g.grind}
+                  </p>
+                  <p className="flex items-center gap-1 text-[#8C735B] font-bold pt-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{lang === 'ar' ? g.time_ar : g.time}</span>
+                  </p>
+                </div>
+                <ol className="text-xs text-stone-600 space-y-2 list-decimal list-inside">
+                  {(lang === 'ar' ? g.steps_ar : g.steps).map((st, idx) => (
+                    <li key={idx} className="leading-relaxed">
+                      {st}
                     </li>
                   ))}
                 </ol>
@@ -495,207 +483,164 @@ export default function RonStore() {
           </div>
         </section>
 
-        {/* Footer */}
-        <footer id="about" className="bg-[#231F1E] text-[#FAF7F2] py-14 mt-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* About & Contact Footer */}
+        <footer id="about" className="bg-white border-t border-[#E6DFD5] mt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <div className="w-12 h-12 rounded-md bg-[#DFD3C3] flex items-center justify-center mb-4">
-                <span className="font-serif font-extrabold tracking-widest text-[#231F1E] text-sm">
-                  RŌN
-                </span>
-              </div>
-              <h4 className="font-extrabold text-lg mb-2">{t('about_title')}</h4>
-              <p className="text-xs text-stone-300 leading-relaxed">{t('about_desc')}</p>
+              <h3 className="font-extrabold text-lg text-[#231F1E] mb-2">{t('about_title')}</h3>
+              <p className="text-xs text-stone-500 leading-relaxed max-w-md">{t('about_desc')}</p>
             </div>
-
-            <div>
-              <h4 className="font-extrabold text-lg mb-3">{t('nav_track')}</h4>
-              <p className="text-xs text-stone-300 mb-4">{t('track_page_subtitle')}</p>
-              <Link
-                href="/track"
-                className="inline-flex items-center gap-2 bg-[#EAE2D7] text-[#231F1E] px-5 py-2.5 rounded-full text-xs font-bold hover:bg-white transition-all"
-              >
-                <Truck className="w-4 h-4" />
-                <span>{t('track_your_order')}</span>
-              </Link>
-            </div>
-
             <div id="contact">
-              <h4 className="font-extrabold text-lg mb-3">{t('contact_title')}</h4>
-              <p className="text-xs text-stone-300 mb-3">{t('contact_desc')}</p>
-              <p className="text-xs text-[#C4A484] font-bold" dir="ltr">
-                care@roncoffee.sa • +966 50 000 0000
-              </p>
-              <p className="text-[11px] text-stone-400 mt-4">
-                © {new Date().getFullYear()} {t('rights_reserved')}
-              </p>
+              <h3 className="font-extrabold text-lg text-[#231F1E] mb-2">{t('contact_title')}</h3>
+              <p className="text-xs text-stone-500 leading-relaxed mb-3">{t('contact_desc')}</p>
+              <button
+                type="button"
+                onClick={() => (user ? setIsAccountOpen(true) : setIsAuthOpen(true))}
+                className="bg-[#231F1E] text-white px-5 py-2.5 rounded-xl text-xs font-bold"
+              >
+                {t('account_tab_tickets')}
+              </button>
             </div>
+          </div>
+          <div className="border-t border-[#E6DFD5] py-5 text-center text-xs text-stone-400 font-bold">
+            © 2026 RŌN. {t('rights_reserved')}
           </div>
         </footer>
       </main>
 
-      {/* Mobile Floating Sticky Cart Bar */}
-      {totalCartItems > 0 && !isCartOpen && !isCheckoutOpen && (
-        <div className="sm:hidden fixed bottom-3 inset-x-3 z-40">
-          <button
-            type="button"
-            onClick={() => setIsCartOpen(true)}
-            className="w-full bg-[#231F1E] text-white p-4 rounded-2xl shadow-2xl border border-[#C4A484]/40 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="bg-[#EAE2D7] text-[#231F1E] text-xs font-extrabold w-6 h-6 rounded-full flex items-center justify-center">
-                {totalCartItems}
-              </span>
-              <span className="text-xs font-bold">{t('view_cart_bar')}</span>
-            </div>
-            <span className="text-xs font-extrabold text-[#EAE2D7]">
-              {subtotal.toFixed(2)} {t('currency')}
-            </span>
-          </button>
-        </div>
-      )}
-
-      {/* PRODUCT QUICK VIEW & CUSTOMIZATION MODAL */}
+      {/* Product Quick-View & Customization Modal */}
       {quickViewProduct && (
-        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl relative border border-[#EDE6DD] max-h-[92dvh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-[#EDE6DD] grid grid-cols-1 md:grid-cols-2 relative">
             <button
               type="button"
               onClick={() => setQuickViewProduct(null)}
-              className="absolute top-4 end-4 bg-white/90 p-2 rounded-full z-10 shadow"
+              className="absolute top-4 end-4 z-10 p-2 rounded-full bg-white/90 text-stone-700 shadow"
             >
-              <X className="w-5 h-5 text-[#231F1E]" />
+              <X className="w-4 h-4" />
             </button>
-            <div className="grid grid-cols-1 md:grid-cols-2">
-              <div className="relative h-56 md:h-full bg-stone-100 p-3">
-                <img
-                  src={quickViewProduct.image}
-                  alt={quickViewProduct.name}
-                  className="w-full h-full object-cover rounded-2xl"
-                />
-              </div>
-              <div className="p-5 sm:p-8 flex flex-col justify-between">
-                <div>
-                  <span className="text-xs font-bold text-[#9C7E5E] uppercase block mb-1">
-                    {lang === 'ar'
-                      ? `${quickViewProduct.origin_ar || quickViewProduct.origin} • ${
-                          quickViewProduct.region_ar || quickViewProduct.region
-                        }`
-                      : `${quickViewProduct.origin} • ${quickViewProduct.region}`}
-                  </span>
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-[#231F1E] mb-2">
-                    {lang === 'ar'
-                      ? quickViewProduct.name_ar || quickViewProduct.name
-                      : quickViewProduct.name}
-                  </h3>
-                  <p className="text-stone-600 text-xs leading-relaxed mb-4">
-                    {lang === 'ar'
-                      ? quickViewProduct.description_ar || quickViewProduct.description
-                      : quickViewProduct.description}
-                  </p>
+            <div className="h-64 md:h-full bg-[#EAE2D7]">
+              <img
+                src={quickViewProduct.image}
+                alt={quickViewProduct.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="p-6 space-y-4 flex flex-col justify-between">
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-[#9C7E5E]">
+                  {lang === 'ar'
+                    ? quickViewProduct.origin_ar || quickViewProduct.origin
+                    : quickViewProduct.origin}{' '}
+                  •{' '}
+                  {lang === 'ar'
+                    ? quickViewProduct.process_ar || quickViewProduct.process
+                    : quickViewProduct.process}
+                </span>
+                <h3 className="text-xl font-extrabold text-[#231F1E]">
+                  {lang === 'ar'
+                    ? quickViewProduct.name_ar || quickViewProduct.name
+                    : quickViewProduct.name}
+                </h3>
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  {lang === 'ar'
+                    ? quickViewProduct.description_ar || quickViewProduct.description
+                    : quickViewProduct.description}
+                </p>
 
-                  {quickViewProduct.category !== 'Tools' && (
-                    <>
-                      {quickViewProduct.weight_options &&
-                        quickViewProduct.weight_options.length > 1 && (
-                          <div className="mb-4">
-                            <label className="block text-xs font-bold text-stone-500 mb-2">
-                              {t('bag_size')}
-                            </label>
-                            <div className="grid grid-cols-3 gap-2">
-                              {quickViewProduct.weight_options.map(w => (
-                                <button
-                                  key={w}
-                                  type="button"
-                                  onClick={() => setSelectedWeight(w)}
-                                  className={`py-2 rounded-xl text-xs font-bold border transition-all ${
-                                    selectedWeight === w
-                                      ? 'bg-[#231F1E] text-white border-[#231F1E]'
-                                      : 'bg-[#FAF7F2] text-stone-700 border-[#EDE6DD]'
-                                  }`}
-                                >
-                                  {translateOption(w)}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                      {quickViewProduct.grind_options &&
-                        quickViewProduct.grind_options.length > 1 && (
-                          <div className="mb-4">
-                            <label className="block text-xs font-bold text-stone-500 mb-2">
-                              {t('grind_type')}
-                            </label>
-                            <select
-                              value={selectedGrind}
-                              onChange={e => setSelectedGrind(e.target.value)}
-                              className="w-full bg-[#FAF7F2] border border-[#EDE6DD] rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#231F1E]"
-                            >
-                              {quickViewProduct.grind_options.map(g => (
-                                <option key={g} value={g}>
-                                  {translateOption(g)}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                    </>
-                  )}
-
-                  <div className="mb-5 flex items-center justify-between bg-[#FAF7F2] p-3 rounded-2xl border border-[#EDE6DD]">
-                    <span className="text-xs font-bold text-stone-600">{t('quantity_label')}</span>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setQuickViewQty(q => Math.max(1, q - 1))}
-                        className="w-7 h-7 rounded-lg bg-white border border-stone-200 flex items-center justify-center"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="text-xs font-extrabold w-5 text-center">{quickViewQty}</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setQuickViewQty(q =>
-                            Math.min(quickViewProduct.stock_quantity || 99, q + 1)
-                          )
-                        }
-                        className="w-7 h-7 rounded-lg bg-white border border-stone-200 flex items-center justify-center"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
+                {quickViewProduct.category !== 'Tools' && (
+                  <>
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                        {t('bag_size')}
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {(quickViewProduct.weight_options || ['250g', '500g', '1kg']).map(w => (
+                          <button
+                            key={w}
+                            type="button"
+                            onClick={() => setSelectedWeight(w)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${
+                              selectedWeight === w
+                                ? 'bg-[#231F1E] text-white border-[#231F1E]'
+                                : 'bg-[#FAF7F2] text-stone-700 border-[#EDE6DD]'
+                            }`}
+                          >
+                            {translateOption(w)}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-stone-100">
-                  <span className="text-xl sm:text-2xl font-extrabold text-[#231F1E]">
-                    {(
-                      quickViewProduct.price *
-                      getWeightMultiplier(quickViewProduct, selectedWeight) *
-                      quickViewQty
-                    ).toFixed(2)}{' '}
-                    <span className="text-xs sm:text-sm">{t('currency')}</span>
-                  </span>
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                        {t('grind_type')}
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {(
+                          quickViewProduct.grind_options || [
+                            'Whole Bean',
+                            'Espresso',
+                            'Pour Over / Drip',
+                            'French Press',
+                          ]
+                        ).map(g => (
+                          <button
+                            key={g}
+                            type="button"
+                            onClick={() => setSelectedGrind(g)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${
+                              selectedGrind === g
+                                ? 'bg-[#231F1E] text-white border-[#231F1E]'
+                                : 'bg-[#FAF7F2] text-stone-700 border-[#EDE6DD]'
+                            }`}
+                          >
+                            {translateOption(g)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-[#EDE6DD] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#EDE6DD] rounded-xl px-3 py-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      addToCart(
-                        quickViewProduct,
-                        selectedWeight,
-                        selectedGrind,
-                        quickViewQty,
-                        true
-                      );
-                      setQuickViewProduct(null);
-                    }}
-                    className="bg-[#231F1E] text-white px-6 py-3 rounded-full text-xs font-bold hover:bg-[#3A3331] transition-all flex items-center gap-2"
+                    onClick={() => setQuickViewQty(q => Math.max(1, q - 1))}
                   >
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>{t('add_to_cart_btn')}</span>
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-xs font-extrabold w-5 text-center">{quickViewQty}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setQuickViewQty(q => Math.min(quickViewProduct.stock_quantity, q + 1))
+                    }
+                  >
+                    <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  disabled={quickViewProduct.stock_quantity <= 0}
+                  onClick={() => {
+                    addToCart(
+                      quickViewProduct,
+                      selectedWeight,
+                      selectedGrind,
+                      quickViewQty,
+                      true
+                    );
+                    setQuickViewProduct(null);
+                  }}
+                  className="flex-1 bg-[#231F1E] text-white py-3 rounded-xl text-xs font-bold hover:bg-[#3A3331] flex items-center justify-center gap-2"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>{t('add_to_cart')}</span>
+                </button>
               </div>
             </div>
           </div>
@@ -719,10 +664,19 @@ export default function RonStore() {
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
-        onAuthSubmit={handleAuthSubmit}
-        onAuthSuccess={u => {
-          setUser(u);
-          fetchAccountData(u.id, u.email);
+        onAuthSubmit={async (email, pass) => {
+          setAuthError('');
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password: pass,
+          });
+          if (error) {
+            setAuthError(error.message);
+          } else if (data.user) {
+            setUser(data.user);
+            await fetchAccountData(data.user.id, data.user.email);
+            setIsAuthOpen(false);
+          }
         }}
         authError={authError}
         t={t}
@@ -742,6 +696,7 @@ export default function RonStore() {
           setIsCartOpen(true);
         }}
         onNotify={showBanner}
+        lang={lang}
         t={t}
       />
 
@@ -760,6 +715,7 @@ export default function RonStore() {
           setOrderComplete(false);
           setIsCheckoutOpen(false);
         }}
+        lang={lang}
         t={t}
       />
     </div>

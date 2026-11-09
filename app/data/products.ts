@@ -1,300 +1,68 @@
+// Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
+
 import { Product } from '../types/coffee';
 
-export const PRODUCTS: Product[] = [
-  {
-    id: 'ethiopia-adisa',
-    name: 'Ethiopia - Adisa',
-    name_ar: 'إثيوبيا - أديسا',
-    category: 'Crops',
-    origin: 'Ethiopia',
-    origin_ar: 'إثيوبيا',
-    region: 'Adisa - Yirgacheffe',
-    region_ar: 'أديسا - يرقاتشيف',
-    process: 'Natural',
-    process_ar: 'مجففة',
-    altitude: '2,050m',
-    flavor_notes: ['Strawberry', 'Jasmine', 'Peach', 'Milk Chocolate'],
-    flavor_notes_ar: ['فراولة', 'ياسمين', 'خوخ', 'شوكولاتة بالحليب'],
-    roast_level: 'Light',
-    description: 'Vibrant Ethiopian Adisa coffee beans with rich berry sweetness, floral aromatics, and a velvety body.',
-    description_ar: 'محصول إثيوبيا أديسا الفاخر بإيحاءات الفواكه الحمراء والياسمين مع قوام مخملي وحلاوة عالية.',
-    price: 50.00,
-    stock_quantity: 45,
-    image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['250g', '500g', '1kg'],
-    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-    bestseller: true,
-  },
-  {
-    id: 'ethiopia-orga-wine',
-    name: 'Ethiopia - Orga Wine',
-    name_ar: 'إثيوبي - أورقا واين',
-    category: 'Crops',
-    origin: 'Ethiopia',
-    origin_ar: 'إثيوبيا',
-    region: 'Guji - Orga',
-    region_ar: 'قوجي - أورقا',
-    process: 'Anaerobic Wine',
-    process_ar: 'تخمير لاهوائي (واين)',
-    altitude: '2,150m',
-    flavor_notes: ['Red Grape', 'Dried Berries', 'Dark Cocoa', 'Floral'],
-    flavor_notes_ar: ['عنب أحمر', 'توت مجفف', 'كاكاو داكن', 'زهور برية'],
-    roast_level: 'Light',
-    description: 'An extraordinary anaerobic wine-processed Ethiopian lot bursting with complex berry sweetness and a silky finish.',
-    description_ar: 'محصول إثيوبي فاخر بمعالجة الواين اللاهوائية يتميز بحلاوة التوت المجفف والعنب الأحمر مع قوام حريري.',
-    price: 60.00,
-    stock_quantity: 40,
-    image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['250g', '500g', '1kg'],
-    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-    bestseller: true,
-  },
-  {
-    id: 'uganda-kampala',
-    name: 'Uganda - Kampala',
-    name_ar: 'أوغندي - كامبالا',
-    category: 'Crops',
-    origin: 'Uganda',
-    origin_ar: 'أوغندا',
-    region: 'Kampala - Rwenzori',
-    region_ar: 'كامبالا - روينزوري',
-    process: 'Natural',
-    process_ar: 'مجففة',
-    altitude: '1,850m',
-    flavor_notes: ['Cherry', 'Caramel', 'Spiced Cocoa', 'Dried Fig'],
-    flavor_notes_ar: ['كرز أحمر', 'كراميل', 'كاكاو', 'تين مجفف'],
-    roast_level: 'Medium',
-    description: 'Hand-picked red cherries from high-altitude Ugandan farms offering deep caramel sweetness and a rich syrupy cup.',
-    description_ar: 'حبوب قهوة أوغندية منتقاة بعناية من مرتفعات كامبالا تمنحك حلاوة الكراميل والكرز وقواماً غنياً.',
-    price: 55.00,
-    stock_quantity: 35,
-    image: 'https://images.unsplash.com/photo-1524350876685-274059332603?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['250g', '500g', '1kg'],
-    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-    bestseller: true,
-  },
-  {
-    id: 'brazil-tutti-frutti',
-    name: 'Brazil - Tutti Frutti',
-    name_ar: 'برازيلي - توتي فروتي',
-    category: 'Crops',
-    origin: 'Brazil',
-    origin_ar: 'البرازيل',
-    region: 'Mogiana',
-    region_ar: 'موجيانا',
-    process: 'Natural Infused',
-    process_ar: 'مجففة فاكهية',
-    altitude: '1,250m',
-    flavor_notes: ['Tropical Fruits', 'Sweet Berries', 'Hazelnut', 'Milk Chocolate'],
-    flavor_notes_ar: ['فواكه استوائية', 'توت حلو', 'بندق', 'شوكولاتة بالحليب'],
-    roast_level: 'Medium',
-    description: 'Sweet and fruity Brazilian lot with lush tropical fruit aromatics, creamy chocolate body, and zero bitterness.',
-    description_ar: 'محصول برازيلي فاكهي مميز بإيحاءات الفواكه الاستوائية والتوت الحلو مع قوام الشوكولاتة الكريمي.',
-    price: 48.00,
-    stock_quantity: 50,
-    image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['250g', '500g', '1kg'],
-    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-    bestseller: true,
-  },
-  {
-    id: 'colombia-huila-bourbon',
-    name: 'Colombia - Wardah (El Paraiso)',
-    name_ar: 'كولومبي - ورده',
-    category: 'Crops',
-    origin: 'Colombia',
-    origin_ar: 'كولومبيا',
-    region: 'Huila',
-    region_ar: 'هويلا',
-    process: 'Honey',
-    process_ar: 'عسلية',
-    altitude: '1,750m',
-    flavor_notes: ['Rose Water', 'Caramel', 'Red Apple', 'Milk Chocolate'],
-    flavor_notes_ar: ['ماء الورد', 'كراميل', 'تفاح أحمر', 'شوكولاتة بالحليب'],
-    roast_level: 'Medium',
-    description: 'Sourced from high-altitude farms in Huila, this honey-processed Bourbon delivers floral rose notes, caramel sweetness, and balanced red fruit acidity.',
-    description_ar: 'محصول كولومبي فاخر من مزارع هويلا المرتفعة بمعالجة عسلية يمنحك إيحاءات الورد والكراميل وحلاوة الفواكه الحمراء.',
-    price: 55.00,
-    stock_quantity: 30,
-    image: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['250g', '500g', '1kg'],
-    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-    bestseller: true,
-  },
-  {
-    id: 'ethiopia-yirgacheffe',
-    name: 'Ethiopia Yirgacheffe G1',
-    name_ar: 'إثيوبيا - يرقاتشيف G1',
-    category: 'Crops',
-    origin: 'Ethiopia',
-    origin_ar: 'إثيوبيا',
-    region: 'Yirgacheffe',
-    region_ar: 'يرقاتشيف',
-    process: 'Washed',
-    process_ar: 'مغسولة',
-    altitude: '1,900 - 2,200m',
-    flavor_notes: ['Jasmine', 'Bergamot', 'Peach', 'Lemon Drop'],
-    flavor_notes_ar: ['ياسمين', 'برغموت', 'خوخ', 'ليمون حلو'],
-    roast_level: 'Light',
-    description: 'A legendary washed Ethiopian coffee with vibrant floral aromatics, crisp citrus acidity, and an exceptionally clean, tea-like finish.',
-    description_ar: 'قهوة إثيوبية مغسولة فاخرة تتميز بإيحاءات زهرية عطرية، حمضية حمضيات منعشة، وقوام صافي يشبه الشاي الفاخر.',
-    price: 50.00,
-    stock_quantity: 40,
-    image: 'https://images.unsplash.com/photo-1610632380989-68fef408161d?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['250g', '500g', '1kg'],
-    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-    bestseller: false,
-  },
-  {
-    id: 'sumatra-mandheling',
-    name: 'Sumatra Kerinci Triple Pick',
-    name_ar: 'سومطرة - كيرينسي تريبل بيك',
-    category: 'Crops',
-    origin: 'Indonesia',
-    origin_ar: 'إندونيسيا',
-    region: 'Kerinci, Sumatra',
-    region_ar: 'كيرينسي، سومطرة',
-    process: 'Wet-Hulled (Giling Basah)',
-    process_ar: 'تقشير رطب',
-    altitude: '1,500m',
-    flavor_notes: ['Dark Chocolate', 'Cedar', 'Blackberry', 'Tobacco Leaf'],
-    flavor_notes_ar: ['شوكولاتة داكنة', 'خشب الأرز', 'توت أسود', 'كاكاو غني'],
-    roast_level: 'Dark',
-    description: 'Traditional Sumatran wet-hulled processing creates a heavy, syrupy body with low acidity and deep, earthy cocoa notes.',
-    description_ar: 'معالجة سومطرة التقليدية تمنح القهوة قواماً ثقيلاً وغنياً مع حمضية منخفضة وإيحاءات الشوكولاتة الداكنة العميقة.',
-    price: 55.00,
-    stock_quantity: 25,
-    image: 'https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['250g', '500g', '1kg'],
-    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-  },
-  {
-    id: 'guatemala-antigua',
-    name: 'Guatemala Antigua La Cascada',
-    name_ar: 'غواتيمالا - أنتيغوا لا كاسكادا',
-    category: 'Crops',
-    origin: 'Guatemala',
-    origin_ar: 'غواتيمالا',
-    region: 'Antigua Valley',
-    region_ar: 'وادي أنتيغوا',
-    process: 'Washed',
-    process_ar: 'مغسولة',
-    altitude: '1,600 - 1,800m',
-    flavor_notes: ['Toasted Almond', 'Cacao Nibs', 'Green Apple', 'Spiced Caramel'],
-    flavor_notes_ar: ['لوز محمص', 'حبيبات الكاكاو', 'تفاح أخضر', 'كراميل متبل'],
-    roast_level: 'Medium',
-    description: 'Grown in volcanic soil surrounded by three volcanoes. Offers a rich, velvety cup with complex cocoa notes and a smooth finish.',
-    description_ar: 'مزروعة في تربة بركانية غنية لتحصل على كوب مخملي متوازن بإيحاءات الكاكاو واللوز المحمص.',
-    price: 48.00,
-    stock_quantity: 35,
-    image: 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['250g', '500g', '1kg'],
-    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-  },
-  {
-    id: 'ron-tasting-box',
-    name: 'RON Signature Roastery Box (4x250g)',
-    name_ar: 'بوكس محاصيل RON الفاخر (4 × 250 جرام)',
-    category: 'Boxes',
-    origin: 'Multi-Origin',
-    origin_ar: 'متعدد المصادر',
-    region: 'Signature Selection',
-    region_ar: 'تشكيلة رون المختارة',
-    process: 'Mixed Processes',
-    process_ar: 'معالجات متنوعة',
-    altitude: '1,600 - 2,200m',
-    flavor_notes: ['Floral', 'Caramel', 'Berries', 'Dark Chocolate'],
-    flavor_notes_ar: ['زهور', 'كراميل', 'فواكه حمراء', 'شوكولاتة'],
-    roast_level: 'Medium',
-    description: 'Curated gift and tasting box featuring 4 signature 250g bags from Ethiopia, Colombia, Brazil, and Uganda.',
-    description_ar: 'بوكس التذوق الفاخر من رون يضم 4 محاصيل مختصة (250 جرام لكل كيس) لتجربة متكاملة لعشاق القهوة المختصة.',
-    price: 185.00,
-    stock_quantity: 20,
-    image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['1kg'],
-    grind_options: ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
-    bestseller: true,
-  },
-  {
-    id: 'ron-v60-ceramic-kit',
-    name: 'RON Artisan V60 Pour Over Kit',
-    name_ar: 'طقم أدوات التقطير V60 الاحترافي من RON',
-    category: 'Tools',
-    origin: 'Japan / RON Studio',
-    origin_ar: 'اليابان / استوديو رون',
-    region: 'Brew Gear',
-    region_ar: 'أدوات التحضير',
-    process: 'Ceramic & Borosilicate',
-    process_ar: 'سيراميك وزجاج حراري',
-    altitude: 'N/A',
-    flavor_notes: ['Clean Extraction', 'Thermal Stability', '100 Filters Included'],
-    flavor_notes_ar: ['استخلاص نقي', 'ثبات حراري عالي', 'شامل 100 فلتر ورقي'],
-    roast_level: 'Light',
-    description: 'Complete V60 02 ceramic dripper, 600ml glass server, measuring scoop, and 100 unbleached paper filters.',
-    description_ar: 'طقم تحضير القهوة المقطرة V60 المتكامل يشمل قمع تقطير سيراميك، إناء تقديم زجاجي 600 مل، و100 فلتر ورقي.',
-    price: 135.00,
-    stock_quantity: 18,
-    image: 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?q=80&w=800&auto=format&fit=crop',
-    weight_options: ['250g'],
-    grind_options: ['Whole Bean'],
-  },
-];
+const FALLBACK_ORIGIN_AR: Record<string, string> = {
+  Ethiopia: 'إثيوبيا',
+  Colombia: 'كولومبيا',
+  Brazil: 'البرازيل',
+  Uganda: 'أوغندا',
+  Indonesia: 'إندونيسيا',
+  Guatemala: 'غواتيمالا',
+};
 
 /**
- * Guarantees that any product row fetched from Supabase has complete Arabic & English fields
- * even if the database row was created before Arabic columns existed.
+ * Sanitizes and normalizes a product row coming from Supabase `public.products`
+ * so no null/undefined array or string fields can ever crash the UI.
  */
-export function localizeProduct(raw: Product): Product {
-  const match = PRODUCTS.find(
-    p =>
-      p.id === raw.id ||
-      p.name.toLowerCase() === raw.name?.toLowerCase() ||
-      (raw.name && p.name.toLowerCase().includes(raw.name.toLowerCase()))
-  );
-
-  const fallbackOriginAr: Record<string, string> = {
-    Ethiopia: 'إثيوبيا',
-    Colombia: 'كولومبيا',
-    Brazil: 'البرازيل',
-    Uganda: 'أوغندا',
-    Indonesia: 'إندونيسيا',
-    Guatemala: 'غواتيمالا',
-  };
+export function localizeProduct(raw: Partial<Product> & { id: string }): Product {
+  const safePrice = Number(raw.price);
+  const safeStock = Number(raw.stock_quantity);
 
   return {
-    ...match,
-    ...raw,
-    name: raw.name || match?.name || 'RON Specialty Coffee',
-    name_ar: raw.name_ar?.trim() || match?.name_ar || raw.name,
-    category: raw.category || match?.category || 'Crops',
-    origin: raw.origin || match?.origin || 'Ethiopia',
+    id: String(raw.id),
+    name: raw.name?.trim() || raw.name_ar?.trim() || 'RON Specialty Coffee',
+    name_ar: raw.name_ar?.trim() || raw.name?.trim() || 'قهوة رون المختصة',
+    category: raw.category || 'Crops',
+    origin: raw.origin?.trim() || 'Ethiopia',
     origin_ar:
       raw.origin_ar?.trim() ||
-      match?.origin_ar ||
-      fallbackOriginAr[raw.origin] ||
-      raw.origin,
-    region: raw.region || match?.region || '',
-    region_ar: raw.region_ar?.trim() || match?.region_ar || raw.region,
-    process: raw.process || match?.process || 'Washed',
-    process_ar: raw.process_ar?.trim() || match?.process_ar || 'مغسولة',
-    description: raw.description || match?.description || '',
-    description_ar: raw.description_ar?.trim() || match?.description_ar || raw.description,
-    flavor_notes:
-      raw.flavor_notes && raw.flavor_notes.length > 0
-        ? raw.flavor_notes
-        : match?.flavor_notes || [],
+      (raw.origin ? FALLBACK_ORIGIN_AR[raw.origin] : '') ||
+      raw.origin?.trim() ||
+      'إثيوبيا',
+    region: raw.region?.trim() || '',
+    region_ar: raw.region_ar?.trim() || raw.region?.trim() || '',
+    process: raw.process?.trim() || 'Washed',
+    process_ar: raw.process_ar?.trim() || 'مغسولة',
+    altitude: raw.altitude?.trim() || '1,800m',
+    flavor_notes: Array.isArray(raw.flavor_notes) ? raw.flavor_notes : [],
     flavor_notes_ar:
-      raw.flavor_notes_ar && raw.flavor_notes_ar.length > 0
+      Array.isArray(raw.flavor_notes_ar) && raw.flavor_notes_ar.length > 0
         ? raw.flavor_notes_ar
-        : match?.flavor_notes_ar || raw.flavor_notes || [],
+        : Array.isArray(raw.flavor_notes)
+        ? raw.flavor_notes
+        : [],
+    roast_level:
+      raw.roast_level === 'Light' || raw.roast_level === 'Medium' || raw.roast_level === 'Dark'
+        ? raw.roast_level
+        : 'Medium',
+    description: raw.description?.trim() || '',
+    description_ar: raw.description_ar?.trim() || raw.description?.trim() || '',
+    price: Number.isFinite(safePrice) && safePrice >= 0 ? safePrice : 50.0,
+    stock_quantity: Number.isFinite(safeStock) && safeStock >= 0 ? Math.floor(safeStock) : 0,
+    image:
+      raw.image?.trim() ||
+      'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800&auto=format&fit=crop',
     weight_options:
-      raw.weight_options && raw.weight_options.length > 0
+      Array.isArray(raw.weight_options) && raw.weight_options.length > 0
         ? raw.weight_options
-        : match?.weight_options || ['250g', '500g', '1kg'],
+        : ['250g', '500g', '1kg'],
     grind_options:
-      raw.grind_options && raw.grind_options.length > 0
+      Array.isArray(raw.grind_options) && raw.grind_options.length > 0
         ? raw.grind_options
-        : match?.grind_options || ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
+        : ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
+    bestseller: Boolean(raw.bestseller),
+    created_at: raw.created_at,
   };
 }
 

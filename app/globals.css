@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -21,7 +22,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Hide scrollbars on horizontal pill bars */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
