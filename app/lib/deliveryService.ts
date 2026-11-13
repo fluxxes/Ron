@@ -1,6 +1,6 @@
 // Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
 
-import { CourierProviderType, CartItem } from '../types/coffee';
+import { CourierProviderType, CartItem, OrderStatus } from '../types/coffee';
 
 export interface ShipmentRequest {
   provider: CourierProviderType;
@@ -46,9 +46,7 @@ const SAUDI_POST_ENDPOINT =
  */
 export async function createCourierShipment(req: ShipmentRequest): Promise<ShipmentResponse> {
   const isSaudiPost = req.provider === 'saudi_post';
-  const prefix = isSaudiPost ? 'SPL' : 'SMSA';
-  const randomDigits = Math.floor(1000000000 + Math.random() * 9000000000);
-  const trackingNumber = `${prefix}${randomDigits}`;
+  const generated = generateTrackingNumber(req.provider);
 
   if (SMSA_PASSKEY && req.provider === 'smsa') {
     try {
@@ -66,46 +64,85 @@ export async function createCourierShipment(req: ShipmentRequest): Promise<Shipm
   return {
     success: true,
     provider: req.provider,
-    courierName: isSaudiPost ? 'Saudi Post (SPL)' : 'SMSA Express',
+    courierName: generated.courierName,
+    trackingNumber: generated.trackingNumber,
+    waybillUrl: generated.waybillUrl,
+    estimatedDelivery: estDate,
+    checkpoints: getLiveCourierCheckpoints(
+      req.provider,
+      generated.trackingNumber,
+      req.city,
+      'Processing'
+    ),
+  };
+}
+
+export function generateTrackingNumber(provider: CourierProviderType = 'smsa'): {
+  trackingNumber: string;
+  courierName: string;
+  waybillUrl: string;
+} {
+  const isSaudiPost = provider === 'saudi_post';
+  const prefix = isSaudiPost ? 'SPL' : 'SMSA';
+  const randomDigits = Math.floor(1000000000 + Math.random() * 9000000000);
+  const trackingNumber = `${prefix}${randomDigits}`;
+  return {
     trackingNumber,
+    courierName: isSaudiPost ? 'Saudi Post (SPL)' : 'SMSA Express',
     waybillUrl: isSaudiPost
       ? `https://splonline.com.sa/ar/tracking/?awb=${trackingNumber}`
       : `https://www.smsaexpress.com/sa/ar/trackingdetails?tracknumbers=${trackingNumber}`,
-    estimatedDelivery: estDate,
-    checkpoints: getLiveCourierCheckpoints(req.provider, trackingNumber, req.city),
   };
 }
 
 export function getLiveCourierCheckpoints(
   provider: CourierProviderType = 'smsa',
   trackingNumber = '',
-  destinationCity = 'الرياض'
+  destinationCity = 'الرياض',
+  status: OrderStatus = 'Processing'
 ) {
   const courierAr = provider === 'saudi_post' ? 'البريد السعودي سبل (SPL)' : 'سمسا إكسبرس (SMSA)';
   const courierEn = provider === 'saudi_post' ? 'Saudi Post (SPL)' : 'SMSA Express';
   const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+  const isRoasted = [
+    'Roasted & Packed',
+    'Shipped',
+    'Out for Delivery',
+    'Delivered',
+    'Completed',
+  ].includes(status);
+  const isDispatched = ['Shipped', 'Out for Delivery', 'Delivered', 'Completed'].includes(status);
+  const isDelivered = ['Delivered', 'Completed'].includes(status);
+
   return [
     {
-      stage: `Electronic Waybill Generated (${trackingNumber})`,
-      stage_ar: `تم إصدار بوليصة الشحن آلياً (${trackingNumber}) عبر ${courierAr}`,
-      location: 'RŌN Roastery Hub',
+      stage: `Electronic Waybill Issued (${trackingNumber || 'AWB'})`,
+      stage_ar: `تم إصدار بوليصة الشحن آلياً (${trackingNumber || 'AWB'}) عبر ${courierAr}`,
+      location: 'RŌN Digital Fulfillment',
       timestamp: now,
-      completed: true,
+      completed: status !== 'Cancelled',
     },
     {
       stage: 'Micro-Batch Roasted, Nitrogen-Flushed & Sealed',
       stage_ar: 'تم تحميص المحصول وتغليفه بالنيتروجين لحفظ النضارة',
-      location: 'RŌN Quality Control',
+      location: 'RŌN Roastery Quality Control',
       timestamp: now,
-      completed: true,
+      completed: isRoasted,
     },
     {
-      stage: `Handed over to ${courierEn} Sorting Facility`,
-      stage_ar: `تم تسليم الشحنة لمركز فرز ${courierAr}`,
+      stage: `Dispatched & Out for Delivery with ${courierEn}`,
+      stage_ar: `تم تسليم الشحنة وخروجها للتوصيل مع مندوب ${courierAr}`,
       location: destinationCity,
       timestamp: now,
-      completed: true,
+      completed: isDispatched,
+    },
+    {
+      stage: `Delivered to Customer in ${destinationCity}`,
+      stage_ar: `تم تسليم الطلب للعميل بنجاح في ${destinationCity}`,
+      location: destinationCity,
+      timestamp: now,
+      completed: isDelivered,
     },
   ];
 }

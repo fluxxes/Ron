@@ -2,7 +2,16 @@
 
 export type ProductCategory = 'Crops' | 'Boxes' | 'Tools';
 export type RoastLevel = 'Light' | 'Medium' | 'Dark';
-export type OrderStatus = 'Processing' | 'Roasted & Packed' | 'Shipped' | 'Completed' | 'Cancelled';
+export type OrderStatus =
+  | 'Pending Approval'
+  | 'Approved'
+  | 'Processing'
+  | 'Roasted & Packed'
+  | 'Shipped'
+  | 'Out for Delivery'
+  | 'Delivered'
+  | 'Completed'
+  | 'Cancelled';
 export type PaymentMethodType = 'paypal' | 'apple_pay' | 'card' | 'cod';
 export type PaymentStatusType = 'Paid' | 'Pending' | 'Failed' | 'Refunded';
 export type CourierProviderType = 'smsa' | 'saudi_post';

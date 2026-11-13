@@ -6,6 +6,7 @@ import { supabase, getSecureCartSessionKey } from './lib/supabase';
 import { Product, CartItem, Order, CustomerAddress, SavedPaymentMethod } from './types/coffee';
 import { localizeProduct, BREW_GUIDES } from './data/products';
 import { createCourierShipment } from './lib/deliveryService';
+import { processOrderPayment } from './lib/paymentService';
 import Navbar from './components/Navbar';
 import ProductGrid from './components/ProductGrid';
 import CartDrawer from './components/CartDrawer';
@@ -56,15 +57,84 @@ export default function RonStore() {
   const [orderComplete, setOrderComplete] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (): Promise<Product[]> => {
     const { data } = await supabase
       .from('products')
       .select('*')
       .order('created_at', { ascending: false });
     if (data) {
-      setProducts(data.map(item => localizeProduct(item)));
+      const normalized = data.map(item => localizeProduct(item));
+      setProducts(normalized);
+      return normalized;
     }
+    return [];
   }, []);
+
+  // Hydrates server-side cart from `public.cart_items` so refreshes never lose items
+  const hydrateCartFromSupabase = useCallback(
+    async (catalog: Product[], userId?: string | null) => {
+      if (catalog.length === 0) return;
+      try {
+        const sessionKey = getSecureCartSessionKey(userId);
+        const query = userId
+          ? supabase
+              .from('cart_items')
+              .select('*')
+              .or(`session_key.eq.${sessionKey},user_id.eq.${userId}`)
+          : supabase.from('cart_items').select('*').eq('session_key', sessionKey);
+
+        const { data: rows } = await query;
+        if (!rows || rows.length === 0) return;
+
+        const hydrated: CartItem[] = [];
+        for (const row of rows) {
+          const prod = catalog.find(p => String(p.id) === String(row.product_id));
+          if (!prod || prod.stock_quantity <= 0) continue;
+
+          const weight = row.selected_weight || '250g';
+          const grind = row.selected_grind || 'Whole Bean';
+          const mult =
+            prod.category === 'Crops'
+              ? weight === '500g'
+                ? 1.85
+                : weight === '1kg'
+                ? 3.4
+                : 1
+              : 1;
+          const unitPrice = Number((prod.price * mult).toFixed(2));
+          const id = `${prod.id}-${weight}-${grind}`;
+          const validQty = Math.min(prod.stock_quantity, Math.max(1, Number(row.quantity) || 1));
+
+          const existingIdx = hydrated.findIndex(item => item.id === id);
+          if (existingIdx >= 0) {
+            hydrated[existingIdx].quantity = Math.min(
+              prod.stock_quantity,
+              hydrated[existingIdx].quantity + validQty
+            );
+          } else {
+            hydrated.push({
+              id,
+              productId: prod.id,
+              name: prod.name,
+              name_ar: prod.name_ar,
+              price: unitPrice,
+              image: prod.image,
+              selectedWeight: weight,
+              selectedGrind: grind,
+              quantity: validQty,
+            });
+          }
+        }
+
+        if (hydrated.length > 0) {
+          setCart(hydrated);
+        }
+      } catch {
+        // Non-blocking fallback
+      }
+    },
+    []
+  );
 
   const fetchAccountData = useCallback(async (userId: string, userEmail?: string) => {
     const { data: profile } = await supabase
@@ -97,18 +167,28 @@ export default function RonStore() {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let active = true;
+    const initStore = async () => {
+      const catalog = await fetchProducts();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!active) return;
       if (session?.user) {
         setUser(session.user);
-        fetchAccountData(session.user.id, session.user.email);
+        await fetchAccountData(session.user.id, session.user.email);
+        await hydrateCartFromSupabase(catalog, session.user.id);
+      } else {
+        await hydrateCartFromSupabase(catalog, null);
       }
-    });
+    };
+    void initStore();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
-        fetchAccountData(session.user.id, session.user.email);
+        void fetchAccountData(session.user.id, session.user.email);
       } else {
         setUser(null);
         setUserRole('customer');
@@ -118,10 +198,20 @@ export default function RonStore() {
       }
     });
 
+    // Real-time catalog stock sync
+    const productChannel = supabase
+      .channel('public-catalog-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        void fetchProducts();
+      })
+      .subscribe();
+
     return () => {
+      active = false;
       authListener.subscription.unsubscribe();
+      supabase.removeChannel(productChannel);
     };
-  }, [fetchProducts, fetchAccountData]);
+  }, [fetchProducts, fetchAccountData, hydrateCartFromSupabase]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -241,7 +331,9 @@ export default function RonStore() {
       prev
         .map(item => {
           if (item.id !== id) return item;
-          const nextQty = item.quantity + delta;
+          const prod = products.find(p => p.id === item.productId);
+          const maxStock = prod ? prod.stock_quantity : 99;
+          const nextQty = Math.min(maxStock, item.quantity + delta);
           void syncCartToDatabase(
             item.productId,
             item.selectedWeight,
@@ -254,8 +346,38 @@ export default function RonStore() {
     );
   };
 
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totalCartItems = cart.reduce((s, i) => s + i.quantity, 0);
+
   const handleCheckoutSubmit = async (payload: CheckoutSubmissionPayload) => {
-    // 1. Optional Save Address / Save Card for logged-in customer
+    if (cart.length === 0) {
+      showBanner(t('cart_empty'), 'error');
+      return;
+    }
+
+    // 1. Process Payment via modular Payment Service (Moyasar-Ready / Sandbox Active)
+    const paymentRes = await processOrderPayment({
+      amountSar: subtotal + payload.shippingCost,
+      currency: 'SAR',
+      method: payload.paymentMethod,
+      customerName: payload.name,
+      customerEmail: payload.email,
+      customerPhone: payload.phone,
+      description: `RON Specialty Coffee Order (${cart.length} items)`,
+      idempotencyKey: payload.idempotencyKey,
+      cardDetails: payload.newCardDetails,
+    });
+
+    if (!paymentRes.success) {
+      showBanner(
+        paymentRes.errorMessage ||
+          (lang === 'ar' ? 'تعذر إتمام عملية الدفع' : 'Payment verification failed'),
+        'error'
+      );
+      return;
+    }
+
+    // 2. Optional Save Address / Save Card for logged-in customer
     if (user && payload.saveAddress) {
       await supabase.from('customer_addresses').insert([
         {
@@ -290,7 +412,7 @@ export default function RonStore() {
       ]);
     }
 
-    // 2. Generate Automated Courier Waybill (SMSA Express or Saudi Post SPL)
+    // 3. Generate Automated Courier Waybill (SMSA Express or Saudi Post SPL)
     const courierRes = await createCourierShipment({
       provider: payload.courierProvider,
       orderNumber: '',
@@ -306,7 +428,7 @@ export default function RonStore() {
       items: cart,
     });
 
-    // 3. Server-Side Atomic Order Placement & Price Calculation RPC
+    // 4. Server-Side Atomic Order Placement & Price Calculation RPC
     const { data: rpcOrder, error: rpcError } = await supabase.rpc('create_order_atomic', {
       p_idempotency_key: payload.idempotencyKey,
       p_session_key: getSecureCartSessionKey(user?.id),
@@ -320,7 +442,7 @@ export default function RonStore() {
       p_national_address: payload.nationalAddress,
       p_shipping_method: payload.shippingMethod,
       p_payment_method: payload.paymentMethod,
-      p_transaction_id: payload.transactionId,
+      p_transaction_id: paymentRes.transactionId || payload.transactionId,
       p_courier_provider: payload.courierProvider,
       p_tracking_number: courierRes.trackingNumber,
       p_waybill_url: courierRes.waybillUrl,
@@ -345,9 +467,6 @@ export default function RonStore() {
     setCart([]);
     showBanner(t('order_placed'), 'success');
   };
-
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const totalCartItems = cart.reduce((s, i) => s + i.quantity, 0);
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#231F1E] pb-20 sm:pb-0">

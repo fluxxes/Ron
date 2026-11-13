@@ -17,11 +17,12 @@ import {
   ArrowRight,
   Globe,
   MapPin,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TrackOrderPage() {
-  const { lang, t, toggleLanguage, translateStatus } = useTranslation();
+  const { lang, t, toggleLanguage, translateStatus, translateOption } = useTranslation();
   const [orderLookup, setOrderLookup] = useState('');
   const [contactInput, setContactInput] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
@@ -43,7 +44,6 @@ export default function TrackOrderPage() {
         return;
       }
 
-      // Direct fallback query if RPC hasn't been created yet
       const { data: fallbackOrder } = await supabase
         .from('orders')
         .select('*')
@@ -96,18 +96,19 @@ export default function TrackOrderPage() {
   }, [trackedOrder?.id]);
 
   const stages = [
-    { key: 'Confirmed', label: t('step_confirmed'), icon: CheckCircle2 },
+    { key: 'Approved', label: t('step_confirmed'), icon: CheckCircle2 },
     { key: 'Processing', label: t('step_processing'), icon: Clock },
     { key: 'Roasted & Packed', label: t('step_roasted'), icon: Coffee },
-    { key: 'Shipped', label: t('step_shipped'), icon: Truck },
-    { key: 'Completed', label: t('step_completed'), icon: PackageCheck },
+    { key: 'Out for Delivery', label: t('step_shipped'), icon: Truck },
+    { key: 'Delivered', label: t('step_completed'), icon: PackageCheck },
   ];
 
   const getActiveStepIndex = (status: Order['status']) => {
+    if (status === 'Pending Approval' || status === 'Approved') return 0;
     if (status === 'Processing') return 1;
     if (status === 'Roasted & Packed') return 2;
-    if (status === 'Shipped') return 3;
-    if (status === 'Completed') return 4;
+    if (status === 'Shipped' || status === 'Out for Delivery') return 3;
+    if (status === 'Delivered' || status === 'Completed') return 4;
     return 0;
   };
 
@@ -116,7 +117,8 @@ export default function TrackOrderPage() {
     ? getLiveCourierCheckpoints(
         trackedOrder.courier_provider || 'smsa',
         trackedOrder.tracking_number || '',
-        trackedOrder.city
+        trackedOrder.city,
+        trackedOrder.status
       )
     : [];
 
@@ -205,11 +207,17 @@ export default function TrackOrderPage() {
                   {trackedOrder.customer_name}
                 </h2>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  {trackedOrder.address}, {trackedOrder.city}
+                  {trackedOrder.address}, {trackedOrder.city} ({trackedOrder.postal_code})
                 </p>
               </div>
               <div className="text-end">
-                <span className="px-4 py-1.5 rounded-full text-xs font-extrabold bg-[#231F1E] text-[#EAE2D7]">
+                <span
+                  className={`px-4 py-1.5 rounded-full text-xs font-extrabold ${
+                    trackedOrder.status === 'Cancelled'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-[#231F1E] text-[#EAE2D7]'
+                  }`}
+                >
                   {translateStatus(trackedOrder.status)}
                 </span>
                 {trackedOrder.tracking_number && (
@@ -228,6 +236,7 @@ export default function TrackOrderPage() {
               </div>
             </div>
 
+            {/* 5-Step Amazon/SHEIN Visual Pipeline */}
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
               {stages.map((st, idx) => {
                 const Icon = st.icon;
@@ -254,6 +263,40 @@ export default function TrackOrderPage() {
               })}
             </div>
 
+            {/* Order Items Summary */}
+            <div className="bg-[#FAF7F2] p-5 rounded-2xl border border-[#EDE6DD] space-y-3">
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#231F1E] flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-[#C4A484]" />
+                <span>{t('roastery_items_label')}</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {(trackedOrder.items || []).map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-3 bg-white p-3 rounded-xl border border-[#EDE6DD]"
+                  >
+                    {item.image && (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-12 h-12 rounded-lg object-cover bg-stone-100"
+                      />
+                    )}
+                    <div className="text-xs">
+                      <p className="font-extrabold text-[#231F1E]">
+                        {item.quantity}x{' '}
+                        {lang === 'ar' && item.name_ar ? item.name_ar : item.name}
+                      </p>
+                      <p className="text-stone-500">
+                        {translateOption(item.selectedWeight)} •{' '}
+                        {translateOption(item.selectedGrind)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Live Courier Checkpoints */}
             <div className="bg-[#FAF7F2] p-5 rounded-2xl border border-[#EDE6DD] space-y-3">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#231F1E] flex items-center gap-1.5">
@@ -268,11 +311,19 @@ export default function TrackOrderPage() {
                 {courierCheckpoints.map((cp, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between text-xs bg-white p-3 rounded-xl border border-[#EDE6DD]"
+                    className={`flex items-center justify-between text-xs p-3 rounded-xl border ${
+                      cp.completed
+                        ? 'bg-white border-[#EDE6DD] text-[#231F1E]'
+                        : 'bg-stone-50 border-stone-200 text-stone-400'
+                    }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span className="font-bold text-[#231F1E]">
+                      <CheckCircle2
+                        className={`w-4 h-4 shrink-0 ${
+                          cp.completed ? 'text-emerald-600' : 'text-stone-300'
+                        }`}
+                      />
+                      <span className="font-bold">
                         {lang === 'ar' ? cp.stage_ar : cp.stage}
                       </span>
                     </div>

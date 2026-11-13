@@ -15,13 +15,30 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Ephemeral in-memory session key for server-side cart isolation (never stores PII in browser)
-let memorySessionKey = '';
+let fallbackMemorySessionKey = '';
 
+/**
+ * Generates or retrieves an anonymous opaque session token so server-side carts
+ * in `public.cart_items` survive page reloads without storing any customer PII or cart data locally.
+ */
 export function getSecureCartSessionKey(userId?: string | null): string {
   if (userId) return `usr_${userId}`;
-  if (!memorySessionKey) {
-    memorySessionKey = `ses_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+
+  if (typeof window !== 'undefined') {
+    try {
+      let existing = window.sessionStorage.getItem('ron_cart_session_token');
+      if (!existing) {
+        existing = `ses_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+        window.sessionStorage.setItem('ron_cart_session_token', existing);
+      }
+      return existing;
+    } catch {
+      // Fallback if sessionStorage is restricted
+    }
   }
-  return memorySessionKey;
+
+  if (!fallbackMemorySessionKey) {
+    fallbackMemorySessionKey = `ses_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  }
+  return fallbackMemorySessionKey;
 }
