@@ -7,7 +7,7 @@ export type SupportedLang = 'ar' | 'en';
 
 const translations: Record<SupportedLang, Record<string, string>> = {
   ar: {
-    brand_subtitle: 'متجر RON',
+    brand_subtitle: 'متجر1 RON',
     nav_home: 'الرئيسية',
     nav_shop: 'المتجر',
     nav_track: 'تتبع الطلب',
