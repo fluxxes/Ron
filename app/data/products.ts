@@ -70,8 +70,8 @@ export const BREW_GUIDES = [
   {
     method: 'Pour Over (V60)',
     method_ar: 'التقطير اليدوي (V60)',
-    ratio: '1:15 (مثال: 20 جرام قهوة إلى 300 مل ماء)',
-    ratio_ar: '1:15 (مثال: 20 جرام قهوة إلى 300 مل ماء)',
+    ratio: '1:16 (e.g., 20g coffee to 320g water)',
+    ratio_ar: '1:16 (مثال: 20 جرام قهوة إلى 320 مل ماء)',
     grind: 'Medium-Fine (like table salt)',
     grind_ar: 'ناعمة إلى متوسطة (مثل ملح الطعام)',
     time: '2:30 - 3:00 minutes',
@@ -86,7 +86,7 @@ export const BREW_GUIDES = [
       'اغسل الفلتر الورقي بالماء الساخن ثم تخلص من ماء الشطف.',
       'أضف 20 جرام من القهوة المطحونة وصفر الميزان.',
       'صب 60 مل من الماء للترطيب واتركها لمدة 30 ثانية.',
-      'صب الماء بحركة دائرية على دفعات حتى تصل إلى 300 مل واستمتع بقهوتك!',
+      'صب الماء بحركة دائرية على دفعات حتى تصل إلى 320 مل واستمتع بقهوتك!',
     ],
   },
   {
@@ -107,6 +107,28 @@ export const BREW_GUIDES = [
       'ضع 18 جرام من القهوة المطحونة الطازجة في البورتافلتر ووزعها بالتساوي.',
       'اكبس القهوة بشكل مستوٍ ومتوازن.',
       'ركّب البورتافلتر وابدأ الاستخلاص فوراً للحصول على 36 جرام خلال 28 ثانية.',
+    ],
+  },
+  {
+    method: 'French Press',
+    method_ar: 'فرنش برس (French Press)',
+    ratio: '1:15 (e.g., 30g coffee to 450g water)',
+    ratio_ar: '1:15 (مثال: 30 جرام قهوة إلى 450 مل ماء)',
+    grind: 'Coarse (sea salt consistency)',
+    grind_ar: 'خشنة (مثل ملح البحر)',
+    time: '4:00 minutes',
+    time_ar: '4:00 دقائق',
+    steps: [
+      'Add 30g coarse coffee to the French Press.',
+      'Pour 450g hot water (93°C), give a gentle stir.',
+      'Place plunger on top without pressing down. Steep for 4 minutes.',
+      'Press down slowly and serve immediately.',
+    ],
+    steps_ar: [
+      'أضف 30 جرام من القهوة الخشنة في إناء الفرنش برس.',
+      'صب 450 مل من الماء الساخن (93 درجة مئوية) وحركها بلطف.',
+      'ضع الغطاء دون ضغط المكبس واتركها تتخمر لمدة 4 دقائق.',
+      'اضغط المكبس ببطء وقدم القهوة فوراً.',
     ],
   },
 ];
