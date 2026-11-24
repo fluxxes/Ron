@@ -70,8 +70,8 @@ export const BREW_GUIDES = [
   {
     method: 'Pour Over (V60)',
     method_ar: 'التقطير اليدوي (V60)',
-    ratio: '1:15 (مثال: 20 جرام قهوة إلى 300 مل ماء)',
-    ratio_ar: '1:15 (مثال: 20 جرام قهوة إلى 300 مل ماء)',
+    ratio: '1:15 (e.g., 20g coffee to 300g water)',
+    ratio_ar: '1:15(مثال: 20 جرام قهوة إلى 300 مل ماء)',
     grind: 'Medium-Fine (like table salt)',
     grind_ar: 'ناعمة إلى متوسطة (مثل ملح الطعام)',
     time: '2:30 - 3:00 minutes',
@@ -80,7 +80,7 @@ export const BREW_GUIDES = [
       'Rinse paper filter with hot water and discard water.',
       'Add 20g of medium-fine coffee and tare scale.',
       'Pour 60g water for a 30-second bloom.',
-      'Pour in concentric circles up to 320g in stages. Enjoy!',
+      'Pour in concentric circles up to 300g in stages. Enjoy!',
     ],
     steps_ar: [
       'اغسل الفلتر الورقي بالماء الساخن ثم تخلص من ماء الشطف.',
