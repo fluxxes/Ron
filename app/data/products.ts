@@ -109,26 +109,5 @@ export const BREW_GUIDES = [
       'ركّب البورتافلتر وابدأ الاستخلاص فوراً للحصول على 36 جرام خلال 28 ثانية.',
     ],
   },
-  {
-    method: 'French Press',
-    method_ar: 'فرنش برس (French Press)',
-    ratio: '1:15 (e.g., 30g coffee to 450g water)',
-    ratio_ar: '1:15 (مثال: 30 جرام قهوة إلى 450 مل ماء)',
-    grind: 'Coarse (sea salt consistency)',
-    grind_ar: 'خشنة (مثل ملح البحر)',
-    time: '4:00 minutes',
-    time_ar: '4:00 دقائق',
-    steps: [
-      'Add 30g coarse coffee to the French Press.',
-      'Pour 450g hot water (93°C), give a gentle stir.',
-      'Place plunger on top without pressing down. Steep for 4 minutes.',
-      'Press down slowly and serve immediately.',
-    ],
-    steps_ar: [
-      'أضف 30 جرام من القهوة الخشنة في إناء الفرنش برس.',
-      'صب 450 مل من الماء الساخن (93 درجة مئوية) وحركها بلطف.',
-      'ضع الغطاء دون ضغط المكبس واتركها تتخمر لمدة 4 دقائق.',
-      'اضغط المكبس ببطء وقدم القهوة فوراً.',
-    ],
-  },
+
 ];
