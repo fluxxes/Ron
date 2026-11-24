@@ -70,8 +70,8 @@ export const BREW_GUIDES = [
   {
     method: 'Pour Over (V60)',
     method_ar: 'التقطير اليدوي (V60)',
-    ratio: '1:15(مثال: 20 جرام قهوة إلى 300 مل ماء)',
-    ratio_ar: '1:15(مثال: 20 جرام قهوة إلى 300 مل ماء)',
+    ratio: '1:15 (مثال: 20 جرام قهوة إلى 300 مل ماء)',
+    ratio_ar: '1:15 (مثال: 20 جرام قهوة إلى 300 مل ماء)',
     grind: 'Medium-Fine (like table salt)',
     grind_ar: 'ناعمة إلى متوسطة (مثل ملح الطعام)',
     time: '2:30 - 3:00 minutes',
