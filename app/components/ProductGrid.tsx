@@ -4,6 +4,7 @@
 import React, { useState, useMemo } from 'react';
 import { Product, CartItem } from '../types/coffee';
 import { localizeProduct } from '../data/products';
+import { useSiteSettings } from '../lib/siteSettings';
 import { Plus, Minus, Search, SlidersHorizontal, Sparkles, Package } from 'lucide-react';
 
 interface ProductGridProps {
@@ -29,9 +30,12 @@ export default function ProductGrid({
   lang = 'ar',
   t,
 }: ProductGridProps) {
+  const { settings } = useSiteSettings();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'bestseller'>('featured');
+  const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'bestseller'>(
+    'featured'
+  );
 
   const categories = [
     { key: 'All', label: t('filter_all') },
@@ -52,12 +56,16 @@ export default function ProductGrid({
   }, [products]);
 
   const displayedProducts = useMemo(() => {
+    const activeRoastFilter = settings.features.show_roast_filters ? selectedRoast : 'All';
     return localizedProducts
       .filter(p => {
         const cat = p.category || 'Crops';
-        const matchesCat = selectedCategory === 'All' || cat === selectedCategory;
+        const matchesCat =
+          !settings.features.show_category_filters ||
+          selectedCategory === 'All' ||
+          cat === selectedCategory;
         const matchesRoast =
-          selectedRoast === 'All' || cat === 'Tools' || p.roast_level === selectedRoast;
+          activeRoastFilter === 'All' || cat === 'Tools' || p.roast_level === activeRoastFilter;
         const q = searchQuery.trim().toLowerCase();
         const matchesSearch =
           !q ||
@@ -75,7 +83,15 @@ export default function ProductGrid({
         if (sortBy === 'bestseller') return (b.bestseller ? 1 : 0) - (a.bestseller ? 1 : 0);
         return 0;
       });
-  }, [localizedProducts, selectedCategory, selectedRoast, searchQuery, sortBy]);
+  }, [
+    localizedProducts,
+    selectedCategory,
+    selectedRoast,
+    searchQuery,
+    sortBy,
+    settings.features.show_roast_filters,
+    settings.features.show_category_filters,
+  ]);
 
   const getCategoryLabel = (cat?: string) => {
     if (cat === 'Boxes') return t('category_boxes');
@@ -97,71 +113,77 @@ export default function ProductGrid({
         </p>
       </div>
 
-      <div className="flex items-center justify-center gap-2.5 sm:gap-3 mb-8 flex-wrap">
-        {categories.map(cat => {
-          const isActive = selectedCategory === cat.key;
-          return (
-            <button
-              type="button"
-              key={cat.key}
-              onClick={() => setSelectedCategory(cat.key)}
-              className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 border ${
-                isActive
-                  ? 'bg-[#231F1E] text-white border-[#231F1E] shadow-md'
-                  : 'bg-[#FAF7F2] text-[#3D3734] border-[#D5CCC0] hover:border-[#231F1E] hover:bg-white'
-              }`}
-            >
-              {cat.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="max-w-4xl mx-auto mb-10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white/90 p-3 rounded-2xl border border-[#D5CCC0] shadow-sm">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="w-4 h-4 text-stone-400 absolute top-1/2 -translate-y-1/2 start-3.5" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder={t('search_placeholder')}
-            className="w-full bg-[#FAF7F2] border border-[#D5CCC0] rounded-xl ps-9 pe-3 py-2.5 text-xs text-[#231F1E] focus:outline-none focus:border-[#B89F86]"
-          />
-        </div>
-
-        <div className="flex items-center justify-between sm:justify-center gap-2 overflow-x-auto py-0.5 no-scrollbar">
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[11px] font-bold text-stone-400 me-1 hidden sm:flex items-center gap-1">
-              <SlidersHorizontal className="w-3 h-3" /> {t('roast_suffix')}:
-            </span>
-            {roastLevels.map(r => (
+      {settings.features.show_category_filters && (
+        <div className="flex items-center justify-center gap-2.5 sm:gap-3 mb-8 flex-wrap">
+          {categories.map(cat => {
+            const isActive = selectedCategory === cat.key;
+            return (
               <button
                 type="button"
-                key={r.key}
-                onClick={() => onSelectRoast(r.key)}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${
-                  selectedRoast === r.key
-                    ? 'bg-[#EAE2D7] text-[#231F1E] border border-[#B89F86]'
-                    : 'text-stone-500 hover:text-[#231F1E]'
+                key={cat.key}
+                onClick={() => setSelectedCategory(cat.key)}
+                className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 border ${
+                  isActive
+                    ? 'bg-[#231F1E] text-white border-[#231F1E] shadow-md'
+                    : 'bg-[#FAF7F2] text-[#3D3734] border-[#D5CCC0] hover:border-[#231F1E] hover:bg-white'
                 }`}
               >
-                {r.label}
+                {cat.label}
               </button>
-            ))}
+            );
+          })}
+        </div>
+      )}
+
+      {settings.features.show_search_bar && (
+        <div className="max-w-4xl mx-auto mb-10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white/90 p-3 rounded-2xl border border-[#D5CCC0] shadow-sm">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-4 h-4 text-stone-400 absolute top-1/2 -translate-y-1/2 start-3.5" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={t('search_placeholder')}
+              className="w-full bg-[#FAF7F2] border border-[#D5CCC0] rounded-xl ps-9 pe-3 py-2.5 text-xs text-[#231F1E] focus:outline-none focus:border-[#B89F86]"
+            />
           </div>
 
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value as any)}
-            className="bg-[#FAF7F2] border border-[#D5CCC0] rounded-xl px-2.5 py-2 text-[11px] sm:text-xs font-bold text-[#231F1E] focus:outline-none shrink-0"
-          >
-            <option value="featured">{t('sort_featured')}</option>
-            <option value="bestseller">{t('sort_bestseller')}</option>
-            <option value="price_asc">{t('sort_price_asc')}</option>
-            <option value="price_desc">{t('sort_price_desc')}</option>
-          </select>
+          <div className="flex items-center justify-between sm:justify-end gap-2 overflow-x-auto py-0.5 no-scrollbar">
+            {settings.features.show_roast_filters && (
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-[11px] font-bold text-stone-400 me-1 hidden sm:flex items-center gap-1">
+                  <SlidersHorizontal className="w-3 h-3" /> {t('roast_suffix')}:
+                </span>
+                {roastLevels.map(r => (
+                  <button
+                    type="button"
+                    key={r.key}
+                    onClick={() => onSelectRoast(r.key)}
+                    className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${
+                      selectedRoast === r.key
+                        ? 'bg-[#EAE2D7] text-[#231F1E] border border-[#B89F86]'
+                        : 'text-stone-500 hover:text-[#231F1E]'
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as any)}
+              className="bg-[#FAF7F2] border border-[#D5CCC0] rounded-xl px-3 py-2 text-[11px] sm:text-xs font-bold text-[#231F1E] focus:outline-none shrink-0"
+            >
+              <option value="featured">{t('sort_featured')}</option>
+              <option value="bestseller">{t('sort_bestseller')}</option>
+              <option value="price_asc">{t('sort_price_asc')}</option>
+              <option value="price_desc">{t('sort_price_desc')}</option>
+            </select>
+          </div>
         </div>
-      </div>
+      )}
 
       {displayedProducts.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-[#D5CCC0] shadow-sm">

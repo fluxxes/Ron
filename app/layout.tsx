@@ -2,6 +2,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Cairo, Inter } from 'next/font/google';
+import { SiteSettingsProvider } from './lib/siteSettings';
 import { LanguageProvider } from './lib/useTranslation';
 
 const cairo = Cairo({
@@ -28,7 +29,9 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={`${cairo.className} ${inter.variable} bg-[#FAF7F2] text-[#231F1E]`}>
-        <LanguageProvider>{children}</LanguageProvider>
+        <SiteSettingsProvider>
+          <LanguageProvider>{children}</LanguageProvider>
+        </SiteSettingsProvider>
       </body>
     </html>
   );

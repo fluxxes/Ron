@@ -5,6 +5,7 @@ import React from 'react';
 import { X, Plus, Minus, ChevronRight, ChevronLeft, ShoppingBag, Truck, Trash2 } from 'lucide-react';
 import { CartItem } from '../types/coffee';
 import { useTranslation } from '../lib/useTranslation';
+import { useSiteSettings } from '../lib/siteSettings';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -24,18 +25,19 @@ export default function CartDrawer({
   onProceedToCheckout,
 }: CartDrawerProps) {
   const { lang, t, translateOption } = useTranslation();
+  const { settings } = useSiteSettings();
 
   if (!isOpen) return null;
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const freeShippingThreshold = 200;
+  const freeShippingThreshold = Math.max(0, Number(settings.pricing.free_shipping_threshold ?? 200));
   const remainingForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
-  const progressPercent = Math.min(100, (subtotal / freeShippingThreshold) * 100);
+  const progressPercent =
+    freeShippingThreshold <= 0 ? 100 : Math.min(100, (subtotal / freeShippingThreshold) * 100);
 
   return (
     <div className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-sm flex justify-end">
       <div className="bg-[#FAF7F2] w-full max-w-md h-full flex flex-col shadow-2xl border-s border-[#EDE6DD]">
-        
         <div className="p-6 bg-white border-b border-[#EDE6DD] flex items-center justify-between">
           <h3 className="font-extrabold text-lg text-[#231F1E] flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-[#C4A484]" />

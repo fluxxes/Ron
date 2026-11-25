@@ -1,12 +1,18 @@
 // Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase, getSecureCartSessionKey } from './lib/supabase';
 import { Product, CartItem, Order, CustomerAddress, SavedPaymentMethod } from './types/coffee';
-import { localizeProduct, BREW_GUIDES } from './data/products';
+import { localizeProduct } from './data/products';
 import { createCourierShipment } from './lib/deliveryService';
 import { processOrderPayment } from './lib/paymentService';
+import {
+  useSiteSettings,
+  getEnabledWeights,
+  getEnabledGrinds,
+  calculateConfiguredUnitPrice,
+} from './lib/siteSettings';
 import Navbar from './components/Navbar';
 import ProductGrid from './components/ProductGrid';
 import CartDrawer from './components/CartDrawer';
@@ -24,11 +30,19 @@ import {
   ShoppingBag,
   Plus,
   Minus,
+  Mail,
+  Phone,
+  MessageCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function RonStore() {
-  const { lang, t, toggleLanguage, translateOption } = useTranslation();
+  const { lang, t, toggleLanguage } = useTranslation();
+  const { settings } = useSiteSettings();
+
+  const enabledWeights = useMemo(() => getEnabledWeights(settings), [settings]);
+  const enabledGrinds = useMemo(() => getEnabledGrinds(settings), [settings]);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -70,7 +84,6 @@ export default function RonStore() {
     return [];
   }, []);
 
-  // Hydrates server-side cart from `public.cart_items` so refreshes never lose items
   const hydrateCartFromSupabase = useCallback(
     async (catalog: Product[], userId?: string | null) => {
       if (catalog.length === 0) return;
@@ -91,17 +104,9 @@ export default function RonStore() {
           const prod = catalog.find(p => String(p.id) === String(row.product_id));
           if (!prod || prod.stock_quantity <= 0) continue;
 
-          const weight = row.selected_weight || '250g';
-          const grind = row.selected_grind || 'Whole Bean';
-          const mult =
-            prod.category === 'Crops'
-              ? weight === '500g'
-                ? 1.85
-                : weight === '1kg'
-                ? 3.4
-                : 1
-              : 1;
-          const unitPrice = Number((prod.price * mult).toFixed(2));
+          const weight = row.selected_weight || enabledWeights[0]?.key || '250g';
+          const grind = row.selected_grind || enabledGrinds[0]?.key || 'Whole Bean';
+          const unitPrice = calculateConfiguredUnitPrice(prod, weight, grind, settings);
           const id = `${prod.id}-${weight}-${grind}`;
           const validQty = Math.min(prod.stock_quantity, Math.max(1, Number(row.quantity) || 1));
 
@@ -133,7 +138,7 @@ export default function RonStore() {
         // Non-blocking fallback
       }
     },
-    []
+    [settings, enabledWeights, enabledGrinds]
   );
 
   const fetchAccountData = useCallback(async (userId: string, userEmail?: string) => {
@@ -198,7 +203,6 @@ export default function RonStore() {
       }
     });
 
-    // Real-time catalog stock sync
     const productChannel = supabase
       .channel('public-catalog-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
@@ -230,15 +234,12 @@ export default function RonStore() {
     try {
       const sessionKey = getSecureCartSessionKey(user?.id);
       if (quantity <= 0) {
-        await supabase
-          .from('cart_items')
-          .delete()
-          .match({
-            session_key: sessionKey,
-            product_id: productId,
-            selected_weight: weight,
-            selected_grind: grind,
-          });
+        await supabase.from('cart_items').delete().match({
+          session_key: sessionKey,
+          product_id: productId,
+          selected_weight: weight,
+          selected_grind: grind,
+        });
       } else {
         await supabase.from('cart_items').upsert(
           [
@@ -256,7 +257,7 @@ export default function RonStore() {
         );
       }
     } catch {
-      // Non-blocking cart persistence fallback
+      // Non-blocking fallback
     }
   };
 
@@ -274,17 +275,11 @@ export default function RonStore() {
     }
 
     const isTool = product.category === 'Tools';
-    const finalWeight = isTool ? 'Standard' : weight || product.weight_options?.[0] || '250g';
-    const finalGrind = isTool ? 'Kit' : grind || product.grind_options?.[0] || 'Whole Bean';
-    const mult =
-      product.category === 'Crops'
-        ? finalWeight === '500g'
-          ? 1.85
-          : finalWeight === '1kg'
-          ? 3.4
-          : 1
-        : 1;
-    const unitPrice = Number((product.price * mult).toFixed(2));
+    const defaultW = enabledWeights[0]?.key || '250g';
+    const defaultG = enabledGrinds[0]?.key || 'Whole Bean';
+    const finalWeight = isTool ? 'Standard' : weight || defaultW;
+    const finalGrind = isTool ? 'Kit' : grind || defaultG;
+    const unitPrice = calculateConfiguredUnitPrice(product, finalWeight, finalGrind, settings);
     const cartItemId = `${product.id}-${finalWeight}-${finalGrind}`;
 
     setCart(prev => {
@@ -296,7 +291,9 @@ export default function RonStore() {
       void syncCartToDatabase(product.id, finalWeight, finalGrind, nextQty);
 
       if (existing) {
-        return prev.map(item => (item.id === cartItemId ? { ...item, quantity: nextQty } : item));
+        return prev.map(item =>
+          item.id === cartItemId ? { ...item, price: unitPrice, quantity: nextQty } : item
+        );
       }
       return [
         ...prev,
@@ -355,7 +352,6 @@ export default function RonStore() {
       return;
     }
 
-    // 1. Process Payment via modular Payment Service (Moyasar-Ready / Sandbox Active)
     const paymentRes = await processOrderPayment({
       amountSar: subtotal + payload.shippingCost,
       currency: 'SAR',
@@ -377,7 +373,6 @@ export default function RonStore() {
       return;
     }
 
-    // 2. Optional Save Address / Save Card for logged-in customer
     if (user && payload.saveAddress) {
       await supabase.from('customer_addresses').insert([
         {
@@ -412,7 +407,6 @@ export default function RonStore() {
       ]);
     }
 
-    // 3. Generate Automated Courier Waybill (SMSA Express or Saudi Post SPL)
     const courierRes = await createCourierShipment({
       provider: payload.courierProvider,
       orderNumber: '',
@@ -428,7 +422,6 @@ export default function RonStore() {
       items: cart,
     });
 
-    // 4. Server-Side Atomic Order Placement & Price Calculation RPC
     const { data: rpcOrder, error: rpcError } = await supabase.rpc('create_order_atomic', {
       p_idempotency_key: payload.idempotencyKey,
       p_session_key: getSecureCartSessionKey(user?.id),
@@ -468,9 +461,18 @@ export default function RonStore() {
     showBanner(t('order_placed'), 'success');
   };
 
+  const liveQuickViewUnitPrice = quickViewProduct
+    ? calculateConfiguredUnitPrice(quickViewProduct, selectedWeight, selectedGrind, settings)
+    : 0;
+
   return (
-    <div className="min-h-screen bg-[#FAF7F2] text-[#231F1E] pb-20 sm:pb-0">
-      {/* In-Website Notification Banner */}
+    <div
+      className="min-h-screen pb-20 sm:pb-0 transition-colors"
+      style={{
+        backgroundColor: settings.theme.bg_color || '#FAF7F2',
+        color: settings.theme.primary_dark || '#231F1E',
+      }}
+    >
       {banner && (
         <div className="fixed top-24 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
           <div
@@ -519,118 +521,177 @@ export default function RonStore() {
           lang={lang}
           onSelectProduct={p => {
             setQuickViewProduct(p);
-            setSelectedWeight(p.weight_options?.[0] || '250g');
-            setSelectedGrind(p.grind_options?.[0] || 'Whole Bean');
+            setSelectedWeight(enabledWeights[0]?.key || '250g');
+            setSelectedGrind(enabledGrinds[0]?.key || 'Whole Bean');
             setQuickViewQty(1);
           }}
-          onQuickAdd={p => addToCart(p, p.weight_options?.[0], p.grind_options?.[0], 1, false)}
+          onQuickAdd={p =>
+            addToCart(p, enabledWeights[0]?.key, enabledGrinds[0]?.key, 1, false)
+          }
           onUpdateCartQuantity={updateQuantity}
           t={t}
         />
 
-        {/* Automated Roastery & Courier Highlight Banner */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="bg-[#231F1E] text-[#FAF7F2] rounded-3xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
-            <div className="space-y-3 max-w-2xl">
-              <span className="text-xs font-extrabold uppercase tracking-widest text-[#C4A484]">
-                {t('roastery_banner_badge')}
-              </span>
-              <h2 className="text-2xl sm:text-4xl font-black leading-tight">
-                {t('roastery_banner_title')}
-              </h2>
-              <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
-                {t('roastery_banner_desc')}
-              </p>
-            </div>
-            <Link
-              href="/track"
-              className="bg-[#EAE2D7] text-[#231F1E] px-7 py-4 rounded-2xl text-xs sm:text-sm font-extrabold hover:bg-white transition-all flex items-center gap-2 shrink-0"
+        {/* Roastery Feature Banner */}
+        {settings.features.show_roastery_banner && (
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div
+              className="text-[#FAF7F2] rounded-3xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl"
+              style={{ backgroundColor: settings.theme.primary_dark || '#231F1E' }}
             >
-              <Truck className="w-4 h-4 text-[#8C735B]" />
-              <span>{t('nav_track')}</span>
-            </Link>
-          </div>
-        </section>
-
-        {/* Brew Guides Section */}
-        <section id="brew-guides" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#B89F86] block mb-1">
-              {t('brew_guides_badge')}
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-[#231F1E]">
-              {t('brew_guides_title')}
-            </h2>
-            <p className="text-xs sm:text-sm text-stone-500 mt-2">{t('brew_guides_subtitle')}</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {BREW_GUIDES.map((g, i) => (
-              <div
-                key={i}
-                className="bg-white p-6 rounded-3xl border border-[#EDE6DD] shadow-sm space-y-4"
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="font-extrabold text-lg text-[#231F1E]">
-                    {lang === 'ar' ? g.method_ar : g.method}
-                  </h3>
-                  <Coffee className="w-5 h-5 text-[#C4A484]" />
-                </div>
-                <div className="text-xs space-y-1 bg-[#FAF7F2] p-3.5 rounded-2xl border border-[#EDE6DD]">
-                  <p>
-                    <strong>{lang === 'ar' ? 'النسبة:' : 'Ratio:'}</strong>{' '}
-                    {lang === 'ar' ? g.ratio_ar : g.ratio}
-                  </p>
-                  <p>
-                    <strong>{lang === 'ar' ? 'الطحنة:' : 'Grind:'}</strong>{' '}
-                    {lang === 'ar' ? g.grind_ar : g.grind}
-                  </p>
-                  <p className="flex items-center gap-1 text-[#8C735B] font-bold pt-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{lang === 'ar' ? g.time_ar : g.time}</span>
-                  </p>
-                </div>
-                <ol className="text-xs text-stone-600 space-y-2 list-decimal list-inside">
-                  {(lang === 'ar' ? g.steps_ar : g.steps).map((st, idx) => (
-                    <li key={idx} className="leading-relaxed">
-                      {st}
-                    </li>
-                  ))}
-                </ol>
+              <div className="space-y-3 max-w-2xl">
+                <span
+                  className="text-xs font-extrabold uppercase tracking-widest"
+                  style={{ color: settings.theme.accent_gold || '#C4A484' }}
+                >
+                  {t('roastery_banner_badge')}
+                </span>
+                <h2 className="text-2xl sm:text-4xl font-black leading-tight">
+                  {t('roastery_banner_title')}
+                </h2>
+                <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
+                  {t('roastery_banner_desc')}
+                </p>
               </div>
-            ))}
-          </div>
-        </section>
+              {settings.features.show_track_order && (
+                <Link
+                  href={settings.content.banner_cta_link || '/track'}
+                  className="bg-[#EAE2D7] text-[#231F1E] px-7 py-4 rounded-2xl text-xs sm:text-sm font-extrabold hover:bg-white transition-all flex items-center gap-2 shrink-0"
+                >
+                  <Truck className="w-4 h-4 text-[#8C735B]" />
+                  <span>{t('nav_track')}</span>
+                </Link>
+              )}
+            </div>
+          </section>
+        )}
 
-        {/* About & Contact Footer */}
-        <footer id="about" className="bg-white border-t border-[#E6DFD5] mt-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="font-extrabold text-lg text-[#231F1E] mb-2">{t('about_title')}</h3>
-              <p className="text-xs text-stone-500 leading-relaxed max-w-md">{t('about_desc')}</p>
-            </div>
-            <div id="contact">
-              <h3 className="font-extrabold text-lg text-[#231F1E] mb-2">{t('contact_title')}</h3>
-              <p className="text-xs text-stone-500 leading-relaxed mb-3">{t('contact_desc')}</p>
-              <button
-                type="button"
-                onClick={() => (user ? setIsAccountOpen(true) : setIsAuthOpen(true))}
-                className="bg-[#231F1E] text-white px-5 py-2.5 rounded-xl text-xs font-bold"
+        {/* Dynamic CMS Brew Guides Section */}
+        {settings.features.show_brew_guides && settings.brew_guides.length > 0 && (
+          <section id="brew-guides" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            <div className="text-center max-w-2xl mx-auto mb-10">
+              <span
+                className="text-xs font-bold uppercase tracking-widest block mb-1"
+                style={{ color: settings.theme.accent_gold || '#B89F86' }}
               >
-                {t('account_tab_tickets')}
-              </button>
+                {t('brew_guides_badge')}
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-black text-[#231F1E]">
+                {t('brew_guides_title')}
+              </h2>
+              <p className="text-xs sm:text-sm text-stone-500 mt-2">{t('brew_guides_subtitle')}</p>
             </div>
-          </div>
-          <div className="border-t border-[#E6DFD5] py-5 text-center text-xs text-stone-400 font-bold">
-            © 2026 RŌN. {t('rights_reserved')}
-          </div>
-        </footer>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {settings.brew_guides.map((g, i) => (
+                <div
+                  key={g.id || i}
+                  className="bg-white p-6 rounded-3xl border border-[#EDE6DD] shadow-sm space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-extrabold text-lg text-[#231F1E]">
+                      {lang === 'ar' ? g.method_ar : g.method}
+                    </h3>
+                    <Coffee
+                      className="w-5 h-5"
+                      style={{ color: settings.theme.accent_gold || '#C4A484' }}
+                    />
+                  </div>
+                  <div className="text-xs space-y-1 bg-[#FAF7F2] p-3.5 rounded-2xl border border-[#EDE6DD]">
+                    <p>
+                      <strong>{lang === 'ar' ? 'النسبة:' : 'Ratio:'}</strong>{' '}
+                      {lang === 'ar' ? g.ratio_ar : g.ratio}
+                    </p>
+                    <p>
+                      <strong>{lang === 'ar' ? 'الطحنة:' : 'Grind:'}</strong>{' '}
+                      {lang === 'ar' ? g.grind_ar : g.grind}
+                    </p>
+                    <p className="flex items-center gap-1 text-[#8C735B] font-bold pt-1">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{lang === 'ar' ? g.time_ar : g.time}</span>
+                    </p>
+                  </div>
+                  <ol className="text-xs text-stone-600 space-y-2 list-decimal list-inside">
+                    {(lang === 'ar' ? g.steps_ar : g.steps).map((st, idx) => (
+                      <li key={idx} className="leading-relaxed">
+                        {st}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Dynamic CMS Footer & Contact */}
+        {settings.features.show_footer && (
+          <footer id="about" className="bg-white border-t border-[#E6DFD5] mt-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="font-extrabold text-lg text-[#231F1E] mb-2">{t('about_title')}</h3>
+                <p className="text-xs text-stone-500 leading-relaxed max-w-md">{t('about_desc')}</p>
+              </div>
+              <div id="contact" className="space-y-3">
+                <h3 className="font-extrabold text-lg text-[#231F1E]">{t('contact_title')}</h3>
+                <p className="text-xs text-stone-500 leading-relaxed">{t('contact_desc')}</p>
+
+                <div className="flex flex-wrap gap-3 text-xs font-bold text-stone-700">
+                  {settings.content.contact_email && (
+                    <a
+                      href={`mailto:${settings.content.contact_email}`}
+                      className="inline-flex items-center gap-1.5 bg-[#FAF7F2] px-3 py-2 rounded-xl border border-[#EDE6DD] hover:border-[#231F1E]"
+                    >
+                      <Mail className="w-3.5 h-3.5 text-[#9C7E5E]" />
+                      <span>{settings.content.contact_email}</span>
+                    </a>
+                  )}
+                  {settings.content.contact_phone && (
+                    <a
+                      href={`tel:${settings.content.contact_phone}`}
+                      dir="ltr"
+                      className="inline-flex items-center gap-1.5 bg-[#FAF7F2] px-3 py-2 rounded-xl border border-[#EDE6DD] hover:border-[#231F1E]"
+                    >
+                      <Phone className="w-3.5 h-3.5 text-[#9C7E5E]" />
+                      <span>{settings.content.contact_phone}</span>
+                    </a>
+                  )}
+                  {settings.content.whatsapp_number && (
+                    <a
+                      href={`https://wa.me/${settings.content.whatsapp_number.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 px-3 py-2 rounded-xl border border-emerald-200 hover:bg-emerald-100"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>WhatsApp</span>
+                    </a>
+                  )}
+                </div>
+
+                {settings.features.show_customer_accounts && (
+                  <button
+                    type="button"
+                    onClick={() => (user ? setIsAccountOpen(true) : setIsAuthOpen(true))}
+                    className="text-white px-5 py-2.5 rounded-xl text-xs font-bold"
+                    style={{ backgroundColor: settings.theme.primary_dark || '#231F1E' }}
+                  >
+                    {t('account_tab_tickets')}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="border-t border-[#E6DFD5] py-5 text-center text-xs text-stone-400 font-bold">
+              © 2026 {settings.theme.brand_logo_text || 'RŌN'}. {t('rights_reserved')}
+            </div>
+          </footer>
+        )}
       </main>
 
-      {/* Product Quick-View & Customization Modal */}
+      {/* Product Quick-View Modal (250g Default + No French Press + Live +1 SAR Grind Price) */}
       {quickViewProduct && (
         <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-[#EDE6DD] grid grid-cols-1 md:grid-cols-2 relative">
+          <div className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-[#EDE6DD] grid grid-cols-1 md:grid-cols-2 relative max-h-[92vh] overflow-y-auto">
             <button
               type="button"
               onClick={() => setQuickViewProduct(null)}
@@ -670,51 +731,55 @@ export default function RonStore() {
                 {quickViewProduct.category !== 'Tools' && (
                   <>
                     <div>
-                      <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                      <label className="block text-[11px] font-bold text-stone-500 mb-1.5">
                         {t('bag_size')}
                       </label>
                       <div className="flex flex-wrap gap-2">
-                        {(quickViewProduct.weight_options || ['250g', '500g', '1kg']).map(w => (
+                        {enabledWeights.map(w => (
                           <button
-                            key={w}
+                            key={w.key}
                             type="button"
-                            onClick={() => setSelectedWeight(w)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${
-                              selectedWeight === w
+                            onClick={() => setSelectedWeight(w.key)}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${
+                              selectedWeight === w.key
                                 ? 'bg-[#231F1E] text-white border-[#231F1E]'
                                 : 'bg-[#FAF7F2] text-stone-700 border-[#EDE6DD]'
                             }`}
                           >
-                            {translateOption(w)}
+                            {lang === 'ar' ? w.label_ar : w.label_en}
                           </button>
                         ))}
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                      <label className="block text-[11px] font-bold text-stone-500 mb-1.5">
                         {t('grind_type')}
                       </label>
                       <div className="flex flex-wrap gap-2">
-                        {(
-                          quickViewProduct.grind_options || [
-                            'Whole Bean',
-                            'Espresso',
-                            'Pour Over / Drip',
-                            'French Press',
-                          ]
-                        ).map(g => (
+                        {enabledGrinds.map(g => (
                           <button
-                            key={g}
+                            key={g.key}
                             type="button"
-                            onClick={() => setSelectedGrind(g)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${
-                              selectedGrind === g
+                            onClick={() => setSelectedGrind(g.key)}
+                            className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                              selectedGrind === g.key
                                 ? 'bg-[#231F1E] text-white border-[#231F1E]'
                                 : 'bg-[#FAF7F2] text-stone-700 border-[#EDE6DD]'
                             }`}
                           >
-                            {translateOption(g)}
+                            <span>{lang === 'ar' ? g.label_ar : g.label_en}</span>
+                            {Number(g.extra_price) > 0 && (
+                              <span
+                                className={`text-[10px] px-1.5 py-0.5 rounded-md ${
+                                  selectedGrind === g.key
+                                    ? 'bg-[#C4A484]/25 text-[#EAE2D7]'
+                                    : 'bg-[#EAE2D7] text-[#5A4D41]'
+                                }`}
+                              >
+                                +{Number(g.extra_price)} {t('currency')}
+                              </span>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -723,43 +788,52 @@ export default function RonStore() {
                 )}
               </div>
 
-              <div className="pt-4 border-t border-[#EDE6DD] flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#EDE6DD] rounded-xl px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => setQuickViewQty(q => Math.max(1, q - 1))}
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="text-xs font-extrabold w-5 text-center">{quickViewQty}</span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setQuickViewQty(q => Math.min(quickViewProduct.stock_quantity, q + 1))
-                    }
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
+              <div className="pt-4 border-t border-[#EDE6DD] space-y-3">
+                <div className="flex items-center justify-between text-sm font-extrabold text-[#231F1E]">
+                  <span>{t('total')}</span>
+                  <span className="text-lg">
+                    {(liveQuickViewUnitPrice * quickViewQty).toFixed(2)} {t('currency')}
+                  </span>
                 </div>
 
-                <button
-                  type="button"
-                  disabled={quickViewProduct.stock_quantity <= 0}
-                  onClick={() => {
-                    addToCart(
-                      quickViewProduct,
-                      selectedWeight,
-                      selectedGrind,
-                      quickViewQty,
-                      true
-                    );
-                    setQuickViewProduct(null);
-                  }}
-                  className="flex-1 bg-[#231F1E] text-white py-3 rounded-xl text-xs font-bold hover:bg-[#3A3331] flex items-center justify-center gap-2"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>{t('add_to_cart')}</span>
-                </button>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#EDE6DD] rounded-xl px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => setQuickViewQty(q => Math.max(1, q - 1))}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-xs font-extrabold w-5 text-center">{quickViewQty}</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQuickViewQty(q => Math.min(quickViewProduct.stock_quantity, q + 1))
+                      }
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={quickViewProduct.stock_quantity <= 0}
+                    onClick={() => {
+                      addToCart(
+                        quickViewProduct,
+                        selectedWeight,
+                        selectedGrind,
+                        quickViewQty,
+                        true
+                      );
+                      setQuickViewProduct(null);
+                    }}
+                    className="flex-1 bg-[#231F1E] text-white py-3 rounded-xl text-xs font-bold hover:bg-[#3A3331] flex items-center justify-center gap-2"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>{t('add_to_cart')}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

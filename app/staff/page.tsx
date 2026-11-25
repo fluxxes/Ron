@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { Product, Order, OrderStatus, SupportTicket, CourierProviderType } from '../types/coffee';
 import { localizeProduct } from '../data/products';
 import { generateTrackingNumber } from '../lib/deliveryService';
+import WebsiteEditorPanel from '../components/WebsiteEditorPanel';
 import {
   Package,
   ShoppingBag,
@@ -33,6 +34,7 @@ import {
   CheckSquare,
   Square,
   Zap,
+  Sliders,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '../lib/useTranslation';
@@ -50,7 +52,9 @@ export default function StaffPage() {
   const { lang, t, toggleLanguage, translateStatus, translateOption } = useTranslation();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'tickets'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'tickets' | 'website'>(
+    'orders'
+  );
 
   // Data States
   const [products, setProducts] = useState<Product[]>([]);
@@ -124,7 +128,7 @@ export default function StaffPage() {
     });
   }, [router, fetchData]);
 
-  // Real-time subscriptions for instant order, product & ticket updates
+  // Real-time subscriptions
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -145,7 +149,6 @@ export default function StaffPage() {
     };
   }, [user, fetchData]);
 
-  // Advance or update order stage using the atomic RPC (with direct fallback)
   const handleAdvanceOrderStage = async (
     order: Order,
     nextStatus: OrderStatus,
@@ -199,7 +202,6 @@ export default function StaffPage() {
     }
   };
 
-  // Bulk status update for selected orders
   const handleBulkOrderStatus = async (targetStatus: OrderStatus) => {
     if (selectedOrderIds.length === 0) return;
     for (const id of selectedOrderIds) {
@@ -276,7 +278,6 @@ export default function StaffPage() {
     void fetchData();
   };
 
-  // Product & Stock Controls
   const handleQuickStockAdjust = async (product: Product, delta: number) => {
     const nextStock = Math.max(0, product.stock_quantity + delta);
     await supabase.from('products').update({ stock_quantity: nextStock }).eq('id', product.id);
@@ -376,7 +377,6 @@ export default function StaffPage() {
     notifyStaff(lang === 'ar' ? 'تم حذف المنتج' : 'Product deleted');
   };
 
-  // Ticket Reply & Resolution
   const handleTicketReply = async (ticket: SupportTicket, replyBody: string) => {
     if (!replyBody.trim()) return;
     const nextMsgs = [
@@ -425,8 +425,8 @@ export default function StaffPage() {
       `"${o.city}"`,
       o.national_address || '',
       o.total_amount,
-      o.payment_method || 'card',
-      o.payment_status || 'Paid',
+      o.payment_method || 'cod',
+      o.payment_status || 'Pending',
       o.status,
       o.courier_name || 'SMSA Express',
       o.tracking_number || '',
@@ -441,7 +441,6 @@ export default function StaffPage() {
     a.click();
   };
 
-  // Pipeline counts
   const pipelineCounts = useMemo(() => {
     return {
       all: orders.length,
@@ -461,7 +460,6 @@ export default function StaffPage() {
     };
   }, [orders]);
 
-  // Filtered Orders by Sub-Tab + Search
   const filteredOrders = useMemo(() => {
     return orders.filter(o => {
       const matchesTab =
@@ -491,7 +489,6 @@ export default function StaffPage() {
     });
   }, [orders, pipelineTab, searchQuery]);
 
-  // Filtered Products
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const matchesCat =
@@ -506,7 +503,6 @@ export default function StaffPage() {
     });
   }, [products, productCategoryFilter, productSearch]);
 
-  // Filtered Tickets
   const filteredTickets = useMemo(() => {
     return tickets.filter(tk => ticketFilter === 'All' || tk.status === ticketFilter);
   }, [tickets, ticketFilter]);
@@ -535,7 +531,6 @@ export default function StaffPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#231F1E]">
-      {/* Staff Toast Banner */}
       {staffBanner && (
         <div className="fixed top-20 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
           <div className="bg-[#231F1E] text-[#EAE2D7] border border-[#C4A484] px-5 py-3 rounded-2xl shadow-xl text-xs font-extrabold flex items-center gap-2">
@@ -545,7 +540,7 @@ export default function StaffPage() {
         </div>
       )}
 
-      {/* Top Staff Command Header */}
+      {/* Top Staff Command Header with Prominent "Edit Website" Button */}
       <header className="bg-[#231F1E] text-white shadow-md h-16 sm:h-20 flex items-center px-4 sm:px-6 justify-between sticky top-0 z-40">
         <div className="flex items-center gap-3 sm:gap-4">
           <button
@@ -562,11 +557,27 @@ export default function StaffPage() {
           </button>
           <div className="flex items-center gap-2 text-[#C4A484] font-extrabold">
             <ShieldCheck className="w-6 h-6 shrink-0" />
-            <span className="text-white text-xs sm:text-base">{t('staff_title')}</span>
+            <span className="text-white text-xs sm:text-base hidden md:inline">
+              {t('staff_title')}
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Dedicated Top Button: Edit Website */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('website')}
+            className={`px-3.5 py-2 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 shadow-sm ${
+              activeTab === 'website'
+                ? 'bg-[#C4A484] text-[#231F1E]'
+                : 'bg-[#EAE2D7] text-[#231F1E] hover:bg-white'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>{t('edit_website_btn')}</span>
+          </button>
+
           <button
             type="button"
             onClick={() => void fetchData()}
@@ -576,6 +587,7 @@ export default function StaffPage() {
             <RefreshCw className="w-3.5 h-3.5 text-[#C4A484]" />
             <span className="hidden sm:inline">{lang === 'ar' ? 'تحديث' : 'Sync'}</span>
           </button>
+
           <button
             type="button"
             onClick={toggleLanguage}
@@ -675,14 +687,23 @@ export default function StaffPage() {
               {t('tab_tickets')} ({tickets.length})
             </span>
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('website')}
+            className={`px-5 py-3 rounded-2xl font-extrabold text-xs flex items-center gap-2 whitespace-nowrap transition-all ${
+              activeTab === 'website'
+                ? 'bg-[#231F1E] text-white shadow-md'
+                : 'bg-white text-stone-700 border border-[#EDE6DD]'
+            }`}
+          >
+            <Sliders className="w-4 h-4 text-[#C4A484]" />
+            <span>{t('tab_edit_website')}</span>
+          </button>
         </div>
 
-        {/* ===================================================================== */}
-        {/* TAB 1: SHEIN / AMAZON-STYLE ORDER FULFILLMENT PIPELINE                */}
-        {/* ===================================================================== */}
+        {/* TAB 1: ORDER FULFILLMENT PIPELINE */}
         {activeTab === 'orders' && (
           <div className="space-y-5">
-            {/* 6-Stage Pipeline Sub-Tabs */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
               {[
                 {
@@ -740,7 +761,6 @@ export default function StaffPage() {
               ))}
             </div>
 
-            {/* Search, Bulk Action & CSV Toolbar */}
             <div className="bg-white p-4 rounded-3xl border border-[#EDE6DD] flex flex-wrap items-center justify-between gap-3 shadow-sm">
               <div className="relative flex-1 min-w-[240px]">
                 <Search className="w-4 h-4 text-stone-400 absolute top-1/2 -translate-y-1/2 start-3.5" />
@@ -801,7 +821,6 @@ export default function StaffPage() {
               </div>
             </div>
 
-            {/* Order Cards List */}
             {filteredOrders.length === 0 ? (
               <div className="bg-white p-14 rounded-3xl border border-[#EDE6DD] text-center text-stone-400 text-xs font-bold">
                 {lang === 'ar'
@@ -821,7 +840,6 @@ export default function StaffPage() {
                       isSelected ? 'border-[#231F1E] ring-2 ring-[#C4A484]/30' : 'border-[#EDE6DD]'
                     }`}
                   >
-                    {/* Top Row: Order Meta + Customer + Status Dropdown */}
                     <div className="flex flex-col lg:flex-row justify-between gap-4 border-b border-stone-100 pb-4">
                       <div className="flex items-start gap-3">
                         <button
@@ -868,8 +886,8 @@ export default function StaffPage() {
                               }`}
                               title="Click to toggle Paid / Pending"
                             >
-                              {o.payment_method?.toUpperCase() || 'CARD'} •{' '}
-                              {o.payment_status || 'Paid'}
+                              {o.payment_method?.toUpperCase() || 'COD'} •{' '}
+                              {o.payment_status || 'Pending'}
                             </button>
                             <span className="text-[11px] text-stone-400">
                               {new Date(o.created_at).toLocaleString()}
@@ -932,7 +950,6 @@ export default function StaffPage() {
                       </div>
                     </div>
 
-                    {/* Visual 5-Stage SHEIN/Amazon Progress Bar */}
                     {o.status !== 'Cancelled' && (
                       <div className="grid grid-cols-5 gap-2 pt-1">
                         {[
@@ -966,7 +983,6 @@ export default function StaffPage() {
                       </div>
                     )}
 
-                    {/* One-Click SHEIN/Amazon Staff Action Bar */}
                     <div className="bg-[#FAF7F2] p-3.5 rounded-2xl border border-[#EDE6DD] flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[11px] font-extrabold text-stone-500 me-1 flex items-center gap-1">
@@ -1076,7 +1092,6 @@ export default function StaffPage() {
                       </div>
                     </div>
 
-                    {/* Items + Courier AWB Row */}
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs">
                       <div className="flex flex-wrap gap-2">
                         {(o.items || []).map((item, idx) => (
@@ -1103,7 +1118,6 @@ export default function StaffPage() {
                         ))}
                       </div>
 
-                      {/* Courier & AWB Control */}
                       <div className="flex flex-wrap items-center gap-2">
                         <select
                           value={o.courier_provider || 'smsa'}
@@ -1153,7 +1167,6 @@ export default function StaffPage() {
                       </div>
                     </div>
 
-                    {/* Expandable Audit History & Staff Internal Notes */}
                     {isExpanded && (
                       <div className="pt-4 border-t border-stone-100 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                         <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#EDE6DD] space-y-2">
@@ -1214,9 +1227,7 @@ export default function StaffPage() {
           </div>
         )}
 
-        {/* ===================================================================== */}
-        {/* TAB 2: SUPABASE PRODUCTS & INVENTORY CONTROL                          */}
-        {/* ===================================================================== */}
+        {/* TAB 2: SUPABASE PRODUCTS & INVENTORY CONTROL */}
         {activeTab === 'products' && (
           <div className="space-y-4">
             <div className="bg-white p-4 rounded-3xl border border-[#EDE6DD] flex flex-wrap items-center justify-between gap-3 shadow-sm">
@@ -1368,9 +1379,7 @@ export default function StaffPage() {
           </div>
         )}
 
-        {/* ===================================================================== */}
-        {/* TAB 3: CUSTOMER SUPPORT TICKETS CENTER                                */}
-        {/* ===================================================================== */}
+        {/* TAB 3: CUSTOMER SUPPORT TICKETS CENTER */}
         {activeTab === 'tickets' && (
           <div className="space-y-4">
             <div className="flex gap-2 overflow-x-auto pb-1">
@@ -1465,6 +1474,11 @@ export default function StaffPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* TAB 4: LIVE STAFF WEBSITE CMS EDITOR */}
+        {activeTab === 'website' && (
+          <WebsiteEditorPanel userId={user?.id} lang={lang} onNotify={notifyStaff} />
         )}
 
         {/* Printable Packing Slip & Tax Invoice Modal */}

@@ -2,10 +2,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { useSiteSettings } from './siteSettings';
 
 export type SupportedLang = 'ar' | 'en';
 
-const translations: Record<SupportedLang, Record<string, string>> = {
+export const DEFAULT_TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   ar: {
     brand_subtitle: 'متجر RON',
     nav_home: 'الرئيسية',
@@ -54,8 +55,10 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     subtotal: 'المجموع الفرعي',
     shipping: 'الشحن',
     total: 'الإجمالي',
-    proceed_to_checkout: 'إتمام الطلب والدفع',
+    proceed_to_checkout: 'إتمام الطلب',
     staff_dash: 'لوحة الموظفين',
+    edit_website_btn: 'تعديل الموقع',
+    tab_edit_website: 'تعديل الموقع (CMS)',
     my_account: 'حسابي',
     sign_in: 'تسجيل الدخول',
     sign_up: 'إنشاء حساب',
@@ -63,12 +66,12 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     forgot_password: 'نسيت كلمة المرور؟',
     reset_password: 'إرسال رابط الاستعادة',
     auth_title: 'مرحباً بك في محمصة RON',
-    auth_desc: 'سجل دخولك لإدارة عناوينك، بطاقاتك المحفوظة، وتتبع طلباتك وتذاكر الدعم بسهولة.',
+    auth_desc: 'سجل دخولك لإدارة عناوينك، وتتبع طلباتك وتذاكر الدعم بسهولة.',
     email_label: 'البريد الإلكتروني',
     password_label: 'كلمة المرور',
     phone_label: 'رقم الجوال',
-    checkout_title: 'إتمام الطلب والدفع الآمن',
-    checkout_badge: 'الدفع والشحن الآلي المباشر - RON',
+    checkout_title: 'إتمام الطلب وتأكيد التوصيل',
+    checkout_badge: 'طلب مباشر من محمصة RON',
     full_name: 'الاسم الكامل',
     email_address: 'البريد الإلكتروني',
     shipping_address: 'الحي، الشارع، ورقم المبنى',
@@ -82,11 +85,12 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     shipping_standard: 'شحن قياسي (2 - 4 أيام عمل)',
     shipping_express: 'توصيل رون السريع (نفس اليوم / اليوم التالي)',
     free_label: 'مجاني',
-    payment_method_title: 'اختر وسيلة الدفع',
+    payment_method_title: 'طريقة الدفع',
     pay_paypal: 'PayPal / الدفع الآجل',
     pay_apple: 'Apple Pay',
     pay_card: 'بطاقة ائتمانية / مدى',
-    pay_cod: 'الدفع عند الاستلام (+15 ريال)',
+    pay_cod: 'الدفع عند الاستلام',
+    cod_only_desc: 'الدفع نقداً أو عبر الشبكة لمندوب التوصيل عند استلام طلبك.',
     cod_fee_label: 'رسوم الدفع عند الاستلام',
     saved_addresses_title: 'اختر من عناوينك المحفوظة',
     use_new_address: 'إدخال عنوان شحن جديد',
@@ -101,8 +105,8 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     confirm_cvv_saved: 'أدخل رمز الأمان (CVV) لتأكيد البطاقة المحفوظة:',
     paypal_desc: 'ادفع بأمان عبر رصيد PayPal أو البطاقات المرتبطة أو خدمة الدفع الآجل.',
     paypal_btn: 'الدفع عبر PayPal',
-    processing_payment: 'جاري معالجة الطلب وإصدار بوليصة الشحن آلياً...',
-    complete_order: 'تأكيد الطلب والدفع',
+    processing_payment: 'جاري تأكيد الطلب وإصدار بوليصة الشحن آلياً...',
+    complete_order: 'تأكيد الطلب الآن',
     order_placed: 'تم تأكيد طلبك وإصدار بوليصة الشحن آلياً!',
     order_success_desc: 'تم خصم المخزون وتجهيز طلبك وإرساله لشركة الشحن تلقائياً.',
     order_number_label: 'رقم الطلب:',
@@ -159,12 +163,12 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     status_Cancelled: 'ملغي (مسترد المخزون)',
     roastery_banner_badge: 'محمصة رون للقهوة المختصة',
     roastery_banner_title: 'تحميص طازج يومياً وشحن آلي فوري',
-    roastery_banner_desc: 'نحمّص حبوب القهوة المختصة فور طلبك لضمان أعلى درجات النضارة.',
-    brew_guides_badge: 'باريستا RON',
-    brew_guides_title: 'أدلة التحضير من RON',
+    roastery_banner_desc: 'نحمّص حبوب القهوة المختصة فور طلبك ونصدر بوليصة الشحن آلياً عبر سمسا أو البريد السعودي لضمان أعلى درجات النضارة.',
+    brew_guides_badge: 'أكاديمية باريستا RON',
+    brew_guides_title: 'أدلة التحضير الاحترافية من RON',
     brew_guides_subtitle: 'وصفات معايرة بدقة لاستخلاص أفضل الإيحاءات من محاصيلنا المختصة.',
-    about_title: 'قصة RŌN للقهوة المختصة',
-    about_desc: 'نحن في محمصةRŌN اسم قصير وعصري، اخترنا له هوية تعبّر عن الرونق والتميّز؛ فكل تفصيلة في القهوة، من اختيار الحبوب إلى التحميص، تصنع تجربة تستحق التكرار.',
+    about_title: 'قصة محمصة RŌN للقهوة المختصة',
+    about_desc: 'نحن في محمصة RON ننتقي أجود المحاصيل من مزارع مستدامة في إثيوبيا وكولومبيا والبرازيل وأوغندا، ونحمّصها بعناية فائقة في دفعات صغيرة.',
     contact_title: 'تواصل معنا',
     contact_desc: 'فريق خدمة العملاء ومحمصة RON في خدمتك دائماً عبر نظام التذاكر المباشر.',
     rights_reserved: 'جميع الحقوق محفوظة لمحمصة RŌN للقهوة المختصة.',
@@ -182,7 +186,7 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     export_csv: 'تصدير CSV',
     courier_input_placeholder: 'رقم بوليصة الشحن (SMSA / SPL)',
     add_product_btn: 'إضافة محصول / منتج جديد',
-    edit_product_title: 'تعديل بيانات المنتج',
+    edit_product_title: 'تعديل بيانات المنتج في Supabase',
     new_product_title: 'إضافة منتج جديد لقاعدة بيانات RON',
     col_product: 'المنتج (عربي / إنجليزي)',
     col_category: 'التصنيف والدرجة',
@@ -246,6 +250,8 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     total: 'Total',
     proceed_to_checkout: 'Proceed to Checkout',
     staff_dash: 'Staff Dash',
+    edit_website_btn: 'Edit Website',
+    tab_edit_website: 'Edit Website (CMS)',
     my_account: 'My Account',
     sign_in: 'Sign In',
     sign_up: 'Create Account',
@@ -253,12 +259,12 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     forgot_password: 'Forgot Password?',
     reset_password: 'Send Reset Link',
     auth_title: 'Welcome to RON Roastery',
-    auth_desc: 'Sign in to manage saved addresses, payment methods, live order tracking, and support tickets.',
+    auth_desc: 'Sign in to manage saved addresses, live order tracking, and support tickets.',
     email_label: 'Email Address',
     password_label: 'Password',
     phone_label: 'Phone Number',
-    checkout_title: 'Secure RON Checkout',
-    checkout_badge: 'RŌN AUTOMATED ROASTERY CHECKOUT',
+    checkout_title: 'Confirm Delivery & Order',
+    checkout_badge: 'RŌN DIRECT ROASTERY CHECKOUT',
     full_name: 'Full Name',
     email_address: 'Email Address',
     shipping_address: 'District, Street & Building No.',
@@ -272,12 +278,13 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     shipping_standard: 'Standard Delivery (2–4 Business Days)',
     shipping_express: 'Express Roastery Courier (Same/Next Day)',
     free_label: 'FREE',
-    payment_method_title: 'Select Payment Method',
+    payment_method_title: 'Payment Method',
     pay_paypal: 'PayPal / Pay Later',
     pay_apple: 'Apple Pay',
     pay_card: 'Credit / Debit Card (Mada / Visa / MC)',
-    pay_cod: 'Cash on Delivery (+15 SAR)',
-    cod_fee_label: 'Cash on Delivery Fee',
+    pay_cod: 'Pay on Delivery',
+    cod_only_desc: 'Pay in cash or via POS terminal to the courier when your order arrives.',
+    cod_fee_label: 'Pay on Delivery Fee',
     saved_addresses_title: 'Select a Saved Address',
     use_new_address: 'Use a New Shipping Address',
     save_address_Future: 'Save this address to my profile for future orders',
@@ -291,8 +298,8 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     confirm_cvv_saved: 'Confirm 3-digit CVV for selected card:',
     paypal_desc: 'Pay securely using your PayPal balance, linked bank, or PayPal Pay Later.',
     paypal_btn: 'PayPal Checkout',
-    processing_payment: 'Processing Order & Generating Courier Waybill...',
-    complete_order: 'Confirm & Pay Now',
+    processing_payment: 'Confirming Order & Generating Courier Waybill...',
+    complete_order: 'Confirm Order Now',
     order_placed: 'RON Order & Waybill Automatically Issued!',
     order_success_desc: 'Your order has been automatically processed and dispatched to the courier.',
     order_number_label: 'Order Number:',
@@ -360,14 +367,14 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     rights_reserved: 'All rights reserved to RŌN Specialty Roastery.',
     empty_catalog_msg: 'No coffee products are currently listed in your Supabase database.',
     staff_verifying: 'Verifying Secure RŌN Staff Credentials...',
-    staff_title: 'RŌN Command Center: Orders, Stock & Tickets',
+    staff_title: 'RŌN Command Center: Orders, Stock & CMS',
     kpi_total_orders: 'Total Orders',
     kpi_revenue: 'Confirmed Revenue',
     kpi_open_tickets: 'Open Support Tickets',
     kpi_low_stock: 'Low Stock Alerts (≤10)',
-    tab_orders: 'Order Fulfillment Pipeline',
-    tab_products: 'Catalog & Stock (Supabase)',
-    tab_tickets: 'Customer Support Tickets',
+    tab_orders: 'Order Fulfillment',
+    tab_products: 'Catalog & Stock',
+    tab_tickets: 'Support Tickets',
     staff_search_orders: 'Search Order #, AWB, Customer, Phone, City...',
     export_csv: 'Export CSV',
     courier_input_placeholder: 'Courier AWB # (SMSA/SPL)',
@@ -416,6 +423,7 @@ function broadcastLangChange(next: SupportedLang) {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const { settings } = useSiteSettings();
   const [lang, setLangState] = useState<SupportedLang>('ar');
 
   useEffect(() => {
@@ -440,13 +448,23 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const t = useCallback(
     (key: string) => {
-      return translations[lang]?.[key] || translations['ar'][key] || key;
+      const customDict = lang === 'ar' ? settings.translations_ar : settings.translations_en;
+      if (customDict && typeof customDict[key] === 'string' && customDict[key].trim() !== '') {
+        return customDict[key];
+      }
+      return DEFAULT_TRANSLATIONS[lang]?.[key] || DEFAULT_TRANSLATIONS['ar'][key] || key;
     },
-    [lang]
+    [lang, settings.translations_ar, settings.translations_en]
   );
 
   const translateOption = useCallback(
     (opt: string) => {
+      const wMatch = settings.weight_options.find(w => w.key === opt);
+      if (wMatch) return lang === 'ar' ? wMatch.label_ar || wMatch.key : wMatch.label_en || wMatch.key;
+
+      const gMatch = settings.grind_options.find(g => g.key === opt);
+      if (gMatch) return lang === 'ar' ? gMatch.label_ar || gMatch.key : gMatch.label_en || gMatch.key;
+
       if (lang === 'en') return opt;
       const map: Record<string, string> = {
         'Whole Bean': 'حبوب كاملة',
@@ -461,14 +479,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       };
       return map[opt] || opt;
     },
-    [lang]
+    [lang, settings.weight_options, settings.grind_options]
   );
 
   const translateStatus = useCallback(
     (status: string) => {
-      return translations[lang]?.[`status_${status}`] || status;
+      return t(`status_${status}`) || status;
     },
-    [lang]
+    [t]
   );
 
   return React.createElement(
@@ -480,6 +498,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
 export function useTranslation(): LanguageContextValue {
   const ctx = useContext(LanguageContext);
+  const { settings } = useSiteSettings();
   const [localLang, setLocalLang] = useState<SupportedLang>(globalLang);
 
   useEffect(() => {
@@ -495,8 +514,13 @@ export function useTranslation(): LanguageContextValue {
 
   if (ctx) return ctx;
 
-  const t = (key: string) =>
-    translations[localLang]?.[key] || translations['ar'][key] || key;
+  const t = (key: string) => {
+    const customDict = localLang === 'ar' ? settings.translations_ar : settings.translations_en;
+    if (customDict && typeof customDict[key] === 'string' && customDict[key].trim() !== '') {
+      return customDict[key];
+    }
+    return DEFAULT_TRANSLATIONS[localLang]?.[key] || DEFAULT_TRANSLATIONS['ar'][key] || key;
+  };
 
   const toggleLanguage = () => {
     const next: SupportedLang = globalLang === 'ar' ? 'en' : 'ar';
@@ -508,23 +532,14 @@ export function useTranslation(): LanguageContextValue {
   };
 
   const translateOption = (opt: string) => {
-    if (localLang === 'en') return opt;
-    const map: Record<string, string> = {
-      'Whole Bean': 'حبوب كاملة',
-      Espresso: 'إسبريسو',
-      'Pour Over / Drip': 'تقطير V60 / فلتر',
-      'French Press': 'فرنش برس',
-      Kit: 'طقم متكامل',
-      Standard: 'حجم قياسي',
-      '250g': '250 جرام',
-      '500g': '500 جرام',
-      '1kg': '1 كيلو',
-    };
-    return map[opt] || opt;
+    const wMatch = settings.weight_options.find(w => w.key === opt);
+    if (wMatch) return localLang === 'ar' ? wMatch.label_ar : wMatch.label_en;
+    const gMatch = settings.grind_options.find(g => g.key === opt);
+    if (gMatch) return localLang === 'ar' ? gMatch.label_ar : gMatch.label_en;
+    return opt;
   };
 
-  const translateStatus = (status: string) =>
-    translations[localLang]?.[`status_${status}`] || status;
+  const translateStatus = (status: string) => t(`status_${status}`) || status;
 
   return {
     lang: localLang,

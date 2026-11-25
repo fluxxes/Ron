@@ -16,6 +16,104 @@ export type PaymentMethodType = 'paypal' | 'apple_pay' | 'card' | 'cod';
 export type PaymentStatusType = 'Paid' | 'Pending' | 'Failed' | 'Refunded';
 export type CourierProviderType = 'smsa' | 'saudi_post';
 
+export interface WeightOptionConfig {
+  key: string;
+  label_en: string;
+  label_ar: string;
+  multiplier: number;
+  enabled: boolean;
+}
+
+export interface GrindOptionConfig {
+  key: string;
+  label_en: string;
+  label_ar: string;
+  extra_price: number;
+  enabled: boolean;
+}
+
+export interface BrewGuideItem {
+  id: string;
+  method: string;
+  method_ar: string;
+  ratio: string;
+  ratio_ar: string;
+  grind: string;
+  grind_ar: string;
+  time: string;
+  time_ar: string;
+  steps: string[];
+  steps_ar: string[];
+}
+
+export interface SiteThemeConfig {
+  brand_logo_text: string;
+  brand_logo_sub: string;
+  bg_color: string;
+  primary_dark: string;
+  accent_gold: string;
+  card_bg: string;
+}
+
+export interface SiteContentConfig {
+  announcement_ar: string;
+  announcement_en: string;
+  contact_email: string;
+  contact_phone: string;
+  whatsapp_number: string;
+  instagram_url: string;
+  banner_cta_link: string;
+}
+
+export interface CodConfig {
+  max_order_amount: number;
+  require_phone_validation: boolean;
+  allow_mada_on_delivery: boolean;
+  require_confirmation_checkbox: boolean;
+  instructions_ar: string;
+  instructions_en: string;
+}
+
+export interface SiteFeatureFlags {
+  show_announcement_bar: boolean;
+  show_roast_filters: boolean;
+  show_search_bar: boolean;
+  show_category_filters: boolean;
+  show_roastery_banner: boolean;
+  show_brew_guides: boolean;
+  show_track_order: boolean;
+  show_customer_accounts: boolean;
+  show_footer: boolean;
+  enable_cod: boolean;
+  enable_card: boolean;
+  enable_paypal: boolean;
+  enable_apple_pay: boolean;
+  enable_smsa: boolean;
+  enable_saudi_post: boolean;
+}
+
+export interface SitePricingConfig {
+  free_shipping_threshold: number;
+  standard_shipping_cost: number;
+  express_shipping_cost: number;
+  cod_fee: number;
+}
+
+export interface SiteSettings {
+  id: string;
+  features: SiteFeatureFlags;
+  pricing: SitePricingConfig;
+  theme: SiteThemeConfig;
+  content: SiteContentConfig;
+  cod_config: CodConfig;
+  weight_options: WeightOptionConfig[];
+  grind_options: GrindOptionConfig[];
+  brew_guides: BrewGuideItem[];
+  translations_ar: Record<string, string>;
+  translations_en: Record<string, string>;
+  updated_at?: string;
+}
+
 export interface Product {
   id: string;
   name: string;

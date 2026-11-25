@@ -1,7 +1,7 @@
 // Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   CheckCircle2,
@@ -10,6 +10,9 @@ import {
   Truck,
   MapPin,
   Printer,
+  Banknote,
+  ShieldCheck,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   CartItem,
@@ -20,6 +23,7 @@ import {
   CourierProviderType,
 } from '../types/coffee';
 import { useTranslation } from '../lib/useTranslation';
+import { useSiteSettings } from '../lib/siteSettings';
 import Link from 'next/link';
 
 export interface CheckoutSubmissionPayload {
@@ -76,6 +80,28 @@ export default function CheckoutModal({
   onResetCheckout,
 }: CheckoutModalProps) {
   const { lang, t } = useTranslation();
+  const { settings } = useSiteSettings();
+
+  const enabledPaymentMethods = useMemo(() => {
+    const list: { key: PaymentMethodType; label: string }[] = [];
+    if (settings.features.enable_cod) list.push({ key: 'cod', label: t('pay_cod') });
+    if (settings.features.enable_card) list.push({ key: 'card', label: t('pay_card') });
+    if (settings.features.enable_paypal) list.push({ key: 'paypal', label: t('pay_paypal') });
+    if (settings.features.enable_apple_pay) list.push({ key: 'apple_pay', label: t('pay_apple') });
+    if (list.length === 0) list.push({ key: 'cod', label: t('pay_cod') });
+    return list;
+  }, [settings.features, t]);
+
+  const enabledCouriers = useMemo(() => {
+    const list: { key: CourierProviderType; label: string; badge: string }[] = [];
+    if (settings.features.enable_smsa)
+      list.push({ key: 'smsa', label: t('courier_smsa'), badge: 'AWB Auto' });
+    if (settings.features.enable_saudi_post)
+      list.push({ key: 'saudi_post', label: t('courier_spl'), badge: 'SPL Auto' });
+    if (list.length === 0)
+      list.push({ key: 'smsa', label: t('courier_smsa'), badge: 'AWB Auto' });
+    return list;
+  }, [settings.features.enable_smsa, settings.features.enable_saudi_post, t]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -91,7 +117,8 @@ export default function CheckoutModal({
   const [saveAddress, setSaveAddress] = useState<boolean>(true);
   const [courierProvider, setCourierProvider] = useState<CourierProviderType>('smsa');
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('card');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('cod');
+  const [codConfirmed, setCodConfirmed] = useState<boolean>(false);
 
   const [selectedCardId, setSelectedCardId] = useState<string>('new');
   const [saveCard, setSaveCard] = useState<boolean>(true);
@@ -103,6 +130,18 @@ export default function CheckoutModal({
   });
   const [paymentError, setPaymentError] = useState<string>('');
   const [processingPayment, setProcessingPayment] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!enabledPaymentMethods.some(m => m.key === paymentMethod)) {
+      setPaymentMethod(enabledPaymentMethods[0].key);
+    }
+  }, [enabledPaymentMethods, paymentMethod]);
+
+  useEffect(() => {
+    if (!enabledCouriers.some(c => c.key === courierProvider)) {
+      setCourierProvider(enabledCouriers[0].key);
+    }
+  }, [enabledCouriers, courierProvider]);
 
   useEffect(() => {
     if (savedAddresses.length > 0) {
@@ -133,9 +172,17 @@ export default function CheckoutModal({
 
   if (!isOpen) return null;
 
-  const baseShippingCost = shippingMethod === 'express' ? 45 : subtotal >= 200 ? 0 : 25;
-  const codFee = paymentMethod === 'cod' ? 15 : 0;
+  const freeThreshold = Number(settings.pricing.free_shipping_threshold ?? 200);
+  const stdShipCost = Number(settings.pricing.standard_shipping_cost ?? 25);
+  const expShipCost = Number(settings.pricing.express_shipping_cost ?? 45);
+  const codFeeCfg = Number(settings.pricing.cod_fee ?? 0);
+  const codMaxAmount = Number(settings.cod_config.max_order_amount ?? 1500);
+
+  const baseShippingCost =
+    shippingMethod === 'express' ? expShipCost : subtotal >= freeThreshold ? 0 : stdShipCost;
+  const codFee = paymentMethod === 'cod' ? codFeeCfg : 0;
   const finalTotal = subtotal + baseShippingCost + codFee;
+  const exceedsCodMax = paymentMethod === 'cod' && codMaxAmount > 0 && finalTotal > codMaxAmount;
 
   const handleSelectSavedAddress = (addrId: string) => {
     setSelectedAddressId(addrId);
@@ -181,13 +228,44 @@ export default function CheckoutModal({
     setPaymentError('');
     const activeMethod = overrideMethod || paymentMethod;
 
-    if (!formData.name || !formData.email || !formData.address || !formData.city) {
+    if (!formData.name.trim() || !formData.email.trim() || !formData.address.trim() || !formData.city.trim()) {
       setPaymentError(
         lang === 'ar'
           ? 'يرجى تعبئة جميع حقول عنوان الشحن المطلوبة.'
           : 'Please complete all required shipping address fields.'
       );
       return;
+    }
+
+    // Proper Pay on Delivery Validation
+    if (activeMethod === 'cod') {
+      const phoneDigits = formData.phone.replace(/\D/g, '');
+      if (settings.cod_config.require_phone_validation && phoneDigits.length < 9) {
+        setPaymentError(
+          lang === 'ar'
+            ? 'يرجى إدخال رقم جوال صحيح (مثال: 05XXXXXXXX) لتأكيد طلب الدفع عند الاستلام.'
+            : 'Please enter a valid mobile number (e.g. 05XXXXXXXX) for Pay on Delivery.'
+        );
+        return;
+      }
+
+      if (codMaxAmount > 0 && finalTotal > codMaxAmount) {
+        setPaymentError(
+          lang === 'ar'
+            ? `الحد الأقصى لطلبات الدفع عند الاستلام هو ${codMaxAmount} ريال.`
+            : `Maximum order amount for Pay on Delivery is ${codMaxAmount} SAR.`
+        );
+        return;
+      }
+
+      if (settings.cod_config.require_confirmation_checkbox && !codConfirmed) {
+        setPaymentError(
+          lang === 'ar'
+            ? 'يرجى تأكيد الموافقة على الدفع لمندوب التوصيل عند الاستلام.'
+            : 'Please check the Pay on Delivery confirmation box before submitting.'
+        );
+        return;
+      }
     }
 
     let newCardDetails: CheckoutSubmissionPayload['newCardDetails'] = undefined;
@@ -224,15 +302,13 @@ export default function CheckoutModal({
           exp_month,
           exp_year,
         };
-      } else {
-        if (cardForm.cvv.length < 3) {
-          setPaymentError(
-            lang === 'ar'
-              ? 'يرجى تأكيد رمز الأمان (CVV) لبطاقتك المحفوظة.'
-              : 'Please confirm the 3-digit CVV for your saved card.'
-          );
-          return;
-        }
+      } else if (cardForm.cvv.length < 3) {
+        setPaymentError(
+          lang === 'ar'
+            ? 'يرجى تأكيد رمز الأمان (CVV) لبطاقتك المحفوظة.'
+            : 'Please confirm the 3-digit CVV for your saved card.'
+        );
+        return;
       }
     }
 
@@ -267,6 +343,11 @@ export default function CheckoutModal({
   };
 
   const savedCards = savedPaymentMethods.filter(p => p.method_type === 'card');
+  const isCodOnly = enabledPaymentMethods.length === 1 && enabledPaymentMethods[0].key === 'cod';
+  const codInstructions =
+    lang === 'ar'
+      ? settings.cod_config.instructions_ar || t('cod_only_desc')
+      : settings.cod_config.instructions_en || t('cod_only_desc');
 
   return (
     <div className="fixed inset-0 z-50 bg-stone-950/75 backdrop-blur-sm flex items-center justify-center p-4">
@@ -306,8 +387,12 @@ export default function CheckoutModal({
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-stone-500">{t('transaction_id_label')}</span>
-                  <span className="font-mono text-stone-700">{completedOrder.transaction_id}</span>
+                  <span className="text-stone-500">{t('payment_method_title')}:</span>
+                  <span className="font-bold text-[#231F1E]">
+                    {completedOrder.payment_method === 'cod'
+                      ? t('pay_cod')
+                      : completedOrder.payment_method?.toUpperCase()}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-stone-500">{t('total')}:</span>
@@ -319,7 +404,7 @@ export default function CheckoutModal({
             )}
 
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-              {completedOrder && (
+              {completedOrder && settings.features.show_track_order && (
                 <Link
                   href={`/track?order=${encodeURIComponent(
                     completedOrder.order_number || completedOrder.id
@@ -357,8 +442,9 @@ export default function CheckoutModal({
             </div>
 
             {paymentError && (
-              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-semibold">
-                {paymentError}
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{paymentError}</span>
               </div>
             )}
 
@@ -368,35 +454,28 @@ export default function CheckoutModal({
                 <Truck className="w-4 h-4 text-[#C4A484]" />
                 <span>{t('courier_select_title')}</span>
               </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCourierProvider('smsa')}
-                  className={`p-3.5 rounded-2xl border text-start flex justify-between items-center transition-all ${
-                    courierProvider === 'smsa'
-                      ? 'border-[#231F1E] bg-[#FAF7F2] shadow-sm'
-                      : 'border-stone-200'
-                  }`}
-                >
-                  <span className="text-xs font-bold text-[#231F1E]">{t('courier_smsa')}</span>
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#EAE2D7] text-[#231F1E]">
-                    AWB Auto
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCourierProvider('saudi_post')}
-                  className={`p-3.5 rounded-2xl border text-start flex justify-between items-center transition-all ${
-                    courierProvider === 'saudi_post'
-                      ? 'border-[#231F1E] bg-[#FAF7F2] shadow-sm'
-                      : 'border-stone-200'
-                  }`}
-                >
-                  <span className="text-xs font-bold text-[#231F1E]">{t('courier_spl')}</span>
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#EAE2D7] text-[#231F1E]">
-                    SPL Auto
-                  </span>
-                </button>
+              <div
+                className={`grid grid-cols-1 ${
+                  enabledCouriers.length > 1 ? 'sm:grid-cols-2' : ''
+                } gap-3`}
+              >
+                {enabledCouriers.map(c => (
+                  <button
+                    type="button"
+                    key={c.key}
+                    onClick={() => setCourierProvider(c.key)}
+                    className={`p-3.5 rounded-2xl border text-start flex justify-between items-center transition-all ${
+                      courierProvider === c.key
+                        ? 'border-[#231F1E] bg-[#FAF7F2] shadow-sm'
+                        : 'border-stone-200'
+                    }`}
+                  >
+                    <span className="text-xs font-bold text-[#231F1E]">{c.label}</span>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#EAE2D7] text-[#231F1E]">
+                      {c.badge}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -535,7 +614,9 @@ export default function CheckoutModal({
                 >
                   <span className="text-xs font-bold text-[#231F1E]">{t('shipping_standard')}</span>
                   <span className="text-xs font-extrabold text-emerald-700">
-                    {subtotal >= 200 ? t('free_label') : `25.00 ${t('currency')}`}
+                    {subtotal >= freeThreshold
+                      ? t('free_label')
+                      : `${stdShipCost.toFixed(2)} ${t('currency')}`}
                   </span>
                 </button>
                 <button
@@ -549,39 +630,95 @@ export default function CheckoutModal({
                 >
                   <span className="text-xs font-bold text-[#231F1E]">{t('shipping_express')}</span>
                   <span className="text-xs font-extrabold text-[#231F1E]">
-                    45.00 {t('currency')}
+                    {expShipCost.toFixed(2)} {t('currency')}
                   </span>
                 </button>
               </div>
             </div>
 
-            {/* Payment Method */}
+            {/* Proper Pay on Delivery & Dynamic Payment Section */}
             <div className="space-y-3">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-[#C4A484]" />
+                {isCodOnly ? (
+                  <Banknote className="w-4 h-4 text-[#C4A484]" />
+                ) : (
+                  <CreditCard className="w-4 h-4 text-[#C4A484]" />
+                )}
                 <span>{t('payment_method_title')}</span>
               </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { key: 'card', label: t('pay_card') },
-                  { key: 'paypal', label: t('pay_paypal') },
-                  { key: 'apple_pay', label: t('pay_apple') },
-                  { key: 'cod', label: t('pay_cod') },
-                ].map(pm => (
-                  <button
-                    type="button"
-                    key={pm.key}
-                    onClick={() => setPaymentMethod(pm.key as PaymentMethodType)}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${
-                      paymentMethod === pm.key
-                        ? 'bg-[#231F1E] text-white border-[#231F1E]'
-                        : 'bg-[#FAF7F2] text-stone-700 border-[#EDE6DD]'
-                    }`}
-                  >
-                    {pm.label}
-                  </button>
-                ))}
-              </div>
+
+              {!isCodOnly && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {enabledPaymentMethods.map(pm => (
+                    <button
+                      type="button"
+                      key={pm.key}
+                      onClick={() => setPaymentMethod(pm.key)}
+                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${
+                        paymentMethod === pm.key
+                          ? 'bg-[#231F1E] text-white border-[#231F1E]'
+                          : 'bg-[#FAF7F2] text-stone-700 border-[#EDE6DD]'
+                      }`}
+                    >
+                      {pm.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {paymentMethod === 'cod' && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-[#FAF7F2] border-2 border-[#231F1E] space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#231F1E] text-[#EAE2D7] flex items-center justify-center shrink-0">
+                      <Banknote className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-xs font-extrabold text-[#231F1E]">{t('pay_cod')}</p>
+                        {settings.cod_config.allow_mada_on_delivery && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                            {lang === 'ar' ? 'نقداً أو شبكة مدى' : 'Cash or Mada POS'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-stone-600 leading-relaxed">
+                        {codInstructions}
+                      </p>
+                      {codMaxAmount > 0 && (
+                        <p className="text-[10px] font-bold text-stone-400">
+                          {lang === 'ar'
+                            ? `الحد الأقصى للطلب: ${codMaxAmount} ريال`
+                            : `Max COD order limit: ${codMaxAmount} SAR`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {exceedsCodMax && (
+                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-[11px] text-red-700 font-bold">
+                      {lang === 'ar'
+                        ? `قيمة الطلب تتجاوز الحد الأقصى للدفع عند الاستلام (${codMaxAmount} ريال).`
+                        : `Order total exceeds the ${codMaxAmount} SAR Pay on Delivery limit.`}
+                    </div>
+                  )}
+
+                  {settings.cod_config.require_confirmation_checkbox && (
+                    <label className="flex items-start gap-2.5 pt-2 border-t border-[#EDE6DD] text-xs text-[#231F1E] font-bold cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={codConfirmed}
+                        onChange={e => setCodConfirmed(e.target.checked)}
+                        className="mt-0.5 rounded text-[#231F1E]"
+                      />
+                      <span>
+                        {lang === 'ar'
+                          ? `أؤكد استلام الطلب ودفع مبلغ ${finalTotal.toFixed(2)} ريال لمندوب التوصيل عند الوصول.`
+                          : `I confirm I will receive this order and pay ${finalTotal.toFixed(2)} SAR to the courier upon delivery.`}
+                      </span>
+                    </label>
+                  )}
+                </div>
+              )}
 
               {paymentMethod === 'card' && (
                 <div className="p-4 rounded-2xl bg-[#FAF7F2] border border-[#EDE6DD] space-y-3">
@@ -635,7 +772,10 @@ export default function CheckoutModal({
                           placeholder={t('card_number')}
                           value={cardForm.number}
                           onChange={e =>
-                            setCardForm({ ...cardForm, number: formatCardNumber(e.target.value) })
+                            setCardForm({
+                              ...cardForm,
+                              number: formatCardNumber(e.target.value),
+                            })
                           }
                           className="bg-white border border-[#EDE6DD] rounded-xl px-3.5 py-2.5 text-xs font-mono"
                         />
@@ -760,10 +900,14 @@ export default function CheckoutModal({
             {(paymentMethod === 'card' || paymentMethod === 'cod') && (
               <button
                 type="submit"
-                disabled={processingPayment}
-                className="w-full bg-[#231F1E] text-white py-4 rounded-2xl font-bold hover:bg-[#3A3331] transition-all flex items-center justify-center gap-2 shadow-lg"
+                disabled={processingPayment || exceedsCodMax}
+                className="w-full bg-[#231F1E] disabled:opacity-50 text-white py-4 rounded-2xl font-bold hover:bg-[#3A3331] transition-all flex items-center justify-center gap-2 shadow-lg"
               >
-                <Lock className="w-4 h-4 text-[#C4A484]" />
+                {paymentMethod === 'cod' ? (
+                  <ShieldCheck className="w-4 h-4 text-[#C4A484]" />
+                ) : (
+                  <Lock className="w-4 h-4 text-[#C4A484]" />
+                )}
                 <span>
                   {processingPayment
                     ? t('processing_payment')

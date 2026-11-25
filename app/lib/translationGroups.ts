@@ -1,0 +1,172 @@
+// Copyright (c) 2026 (RON). Developed by (fluxes) All rights reserved.
+
+export interface TranslationGroup {
+    id: string;
+    title_ar: string;
+    title_en: string;
+    desc_ar: string;
+    desc_en: string;
+    keys: {
+      key: string;
+      label_ar: string;
+      label_en: string;
+    }[];
+  }
+  
+  export const TRANSLATION_GROUPS: TranslationGroup[] = [
+    {
+      id: 'nav_brand',
+      title_ar: '1. الشريط العلوي والهوية',
+      title_en: '1. Navigation Bar & Brand',
+      desc_ar: 'الروابط العلوية، اسم المتجر، وأزرار الحساب.',
+      desc_en: 'Top menu links, brand subtitle, and account buttons.',
+      keys: [
+        { key: 'brand_subtitle', label_ar: 'العنوان الفرعي للمتجر', label_en: 'Store Subtitle Badge' },
+        { key: 'nav_home', label_ar: 'رابط الرئيسية', label_en: 'Home Link' },
+        { key: 'nav_shop', label_ar: 'رابط المتجر', label_en: 'Shop Link' },
+        { key: 'nav_track', label_ar: 'رابط تتبع الطلب', label_en: 'Track Order Link' },
+        { key: 'nav_brew', label_ar: 'رابط أدلة التحضير', label_en: 'Brew Guides Link' },
+        { key: 'nav_about', label_ar: 'رابط من نحن', label_en: 'About Us Link' },
+        { key: 'nav_contact', label_ar: 'رابط تواصل معنا', label_en: 'Contact Us Link' },
+        { key: 'my_account', label_ar: 'زر حسابي', label_en: 'My Account Button' },
+        { key: 'sign_in', label_ar: 'زر تسجيل الدخول', label_en: 'Sign In Button' },
+        { key: 'sign_out', label_ar: 'زر تسجيل الخروج', label_en: 'Sign Out Button' },
+      ],
+    },
+    {
+      id: 'hero_filters',
+      title_ar: '2. واجهة المتجر الرئيسية والفلاتر',
+      title_en: '2. Storefront Hero & Filters',
+      desc_ar: 'العنوان الرئيسي الكبير، الوصف، شريط البحث، وأزرار التصنيفات.',
+      desc_en: 'Main storefront headline, subtitle, search bar, and category chips.',
+      keys: [
+        { key: 'hero_title', label_ar: 'العنوان الرئيسي للمتجر', label_en: 'Main Hero Title' },
+        { key: 'hero_desc', label_ar: 'الوصف أسفل العنوان الرئيسي', label_en: 'Hero Subtitle Description' },
+        { key: 'search_placeholder', label_ar: 'نص شريط البحث', label_en: 'Search Placeholder' },
+        { key: 'filter_all', label_ar: 'زر الكل', label_en: 'All Filter Chip' },
+        { key: 'filter_crops', label_ar: 'زر محاصيل RON', label_en: 'RON Crops Chip' },
+        { key: 'filter_boxes', label_ar: 'زر بوكسات RON', label_en: 'RON Boxes Chip' },
+        { key: 'filter_tools', label_ar: 'زر أدوات القهوة', label_en: 'Coffee Tools Chip' },
+        { key: 'sort_featured', label_ar: 'ترتيب: الأكثر تميزاً', label_en: 'Sort: Featured' },
+        { key: 'sort_bestseller', label_ar: 'ترتيب: الأكثر مبيعاً', label_en: 'Sort: Best Selling' },
+        { key: 'sort_price_asc', label_ar: 'ترتيب: السعر من الأقل', label_en: 'Sort: Price Low-High' },
+        { key: 'sort_price_desc', label_ar: 'ترتيب: السعر من الأعلى', label_en: 'Sort: Price High-Low' },
+      ],
+    },
+    {
+      id: 'product_cards',
+      title_ar: '3. بطاقات المنتجات ونافذة التخصيص',
+      title_en: '3. Product Cards & Customization Modal',
+      desc_ar: 'أزرار الإضافة للسلة، العملة، شارة الأكثر مبيعاً، وعناوين الأوزان والطحن.',
+      desc_en: 'Add to cart buttons, currency label, badges, and modal option titles.',
+      keys: [
+        { key: 'category_crops', label_ar: 'تصنيف المحاصيل على البطاقة', label_en: 'Card Category: Crops' },
+        { key: 'category_boxes', label_ar: 'تصنيف البوكسات على البطاقة', label_en: 'Card Category: Boxes' },
+        { key: 'category_tools', label_ar: 'تصنيف الأدوات على البطاقة', label_en: 'Card Category: Tools' },
+        { key: 'add_to_cart_btn', label_ar: 'زر أضف للسلة (البطاقة)', label_en: 'Card Add to Cart Button' },
+        { key: 'add_to_cart', label_ar: 'زر أضف إلى السلة (النافذة)', label_en: 'Modal Add to Cart Button' },
+        { key: 'currency', label_ar: 'العملة (ريال / SAR)', label_en: 'Currency Label' },
+        { key: 'bestseller_badge', label_ar: 'شارة الأكثر مبيعاً', label_en: 'Bestseller Badge' },
+        { key: 'out_of_stock', label_ar: 'شارة نفد المخزون', label_en: 'Out of Stock Badge' },
+        { key: 'sold_out', label_ar: 'زر نفدت الكمية', label_en: 'Sold Out Button' },
+        { key: 'bag_size', label_ar: 'عنوان حجم الكيس', label_en: 'Bag Weight Title' },
+        { key: 'grind_type', label_ar: 'عنوان نوع الطحنة', label_en: 'Grind Type Title' },
+        { key: 'empty_catalog_msg', label_ar: 'رسالة عدم وجود منتجات', label_en: 'Empty Catalog Message' },
+      ],
+    },
+    {
+      id: 'cart_drawer',
+      title_ar: '4. سلة التسوق الجانبية',
+      title_en: '4. Shopping Cart Drawer',
+      desc_ar: 'نصوص السلة، شريط الشحن المجاني، وزر إتمام الطلب.',
+      desc_en: 'Cart header, free shipping progress bar, and checkout trigger.',
+      keys: [
+        { key: 'cart_title', label_ar: 'عنوان سلة التسوق', label_en: 'Cart Title' },
+        { key: 'cart_empty', label_ar: 'رسالة السلة الفارغة', label_en: 'Empty Cart Message' },
+        { key: 'free_shipping_unlocked', label_ar: 'رسالة الحصول على شحن مجاني', label_en: 'Free Shipping Unlocked' },
+        { key: 'free_shipping_remaining', label_ar: 'رسالة المتبقي للشحن المجاني ({amount})', label_en: 'Remaining for Free Shipping ({amount})' },
+        { key: 'subtotal', label_ar: 'المجموع الفرعي', label_en: 'Subtotal Label' },
+        { key: 'shipping', label_ar: 'الشحن', label_en: 'Shipping Label' },
+        { key: 'total', label_ar: 'الإجمالي', label_en: 'Total Label' },
+        { key: 'proceed_to_checkout', label_ar: 'زر إتمام الطلب', label_en: 'Proceed to Checkout Button' },
+      ],
+    },
+    {
+      id: 'checkout_cod',
+      title_ar: '5. إتمام الطلب والدفع عند الاستلام',
+      title_en: '5. Checkout & Pay on Delivery',
+      desc_ar: 'عناوين نموذج التوصيل، الدفع عند الاستلام، وشاشة تأكيد الطلب.',
+      desc_en: 'Checkout headers, Pay on Delivery labels, and order confirmation texts.',
+      keys: [
+        { key: 'checkout_badge', label_ar: 'الشارة العلوية لإتمام الطلب', label_en: 'Checkout Top Badge' },
+        { key: 'checkout_title', label_ar: 'عنوان نافذة إتمام الطلب', label_en: 'Checkout Modal Title' },
+        { key: 'courier_select_title', label_ar: 'عنوان اختيار شركة الشحن', label_en: 'Courier Selection Title' },
+        { key: 'courier_smsa', label_ar: 'اسم سمسا إكسبرس', label_en: 'SMSA Express Label' },
+        { key: 'courier_spl', label_ar: 'اسم البريد السعودي سبل', label_en: 'Saudi Post SPL Label' },
+        { key: 'shipping_method_title', label_ar: 'عنوان سرعة التوصيل', label_en: 'Delivery Speed Title' },
+        { key: 'shipping_standard', label_ar: 'خيار الشحن القياسي', label_en: 'Standard Shipping Label' },
+        { key: 'shipping_express', label_ar: 'خيار الشحن السريع', label_en: 'Express Shipping Label' },
+        { key: 'payment_method_title', label_ar: 'عنوان طريقة الدفع', label_en: 'Payment Method Title' },
+        { key: 'pay_cod', label_ar: 'عنوان الدفع عند الاستلام', label_en: 'Pay on Delivery Title' },
+        { key: 'cod_only_desc', label_ar: 'وصف الدفع عند الاستلام', label_en: 'Pay on Delivery Description' },
+        { key: 'complete_order', label_ar: 'زر تأكيد الطلب النهائي', label_en: 'Confirm Order Button' },
+        { key: 'order_placed', label_ar: 'عنوان نجاح الطلب', label_en: 'Order Confirmed Title' },
+        { key: 'order_success_desc', label_ar: 'وصف نجاح الطلب', label_en: 'Order Confirmed Subtitle' },
+      ],
+    },
+    {
+      id: 'banners_footer',
+      title_ar: '6. بانر المحمصة، أدلة التحضير، والفوتر',
+      title_en: '6. Roastery Banner, Brew Guides & Footer',
+      desc_ar: 'النصوص التعريفية للمحمصة، أدلة التحضير، وقسم من نحن وتواصل معنا.',
+      desc_en: 'Roastery dark banner, Brew Guides section headers, About Us, and Footer.',
+      keys: [
+        { key: 'roastery_banner_badge', label_ar: 'شارة بانر المحمصة', label_en: 'Roastery Banner Badge' },
+        { key: 'roastery_banner_title', label_ar: 'عنوان بانر المحمصة', label_en: 'Roastery Banner Title' },
+        { key: 'roastery_banner_desc', label_ar: 'وصف بانر المحمصة', label_en: 'Roastery Banner Description' },
+        { key: 'brew_guides_badge', label_ar: 'شارة أدلة التحضير', label_en: 'Brew Guides Badge' },
+        { key: 'brew_guides_title', label_ar: 'عنوان أدلة التحضير', label_en: 'Brew Guides Title' },
+        { key: 'brew_guides_subtitle', label_ar: 'وصف أدلة التحضير', label_en: 'Brew Guides Subtitle' },
+        { key: 'about_title', label_ar: 'عنوان قسم من نحن', label_en: 'About Us Title' },
+        { key: 'about_desc', label_ar: 'نص قسم من نحن', label_en: 'About Us Description' },
+        { key: 'contact_title', label_ar: 'عنوان قسم تواصل معنا', label_en: 'Contact Us Title' },
+        { key: 'contact_desc', label_ar: 'نص قسم تواصل معنا', label_en: 'Contact Us Description' },
+        { key: 'rights_reserved', label_ar: 'نص حقوق النشر في الفوتر', label_en: 'Footer Copyright Text' },
+      ],
+    },
+    {
+      id: 'tracking',
+      title_ar: '7. صفحة تتبع الطلبات (/track)',
+      title_en: '7. Order Tracking Page (/track)',
+      desc_ar: 'عناوين ومراحل تتبع الشحنة الظاهرة للعميل.',
+      desc_en: 'Tracking page headers and 5-step visual progress labels.',
+      keys: [
+        { key: 'track_badge', label_ar: 'شارة صفحة التتبع', label_en: 'Tracking Top Badge' },
+        { key: 'track_page_title', label_ar: 'عنوان صفحة التتبع', label_en: 'Tracking Page Title' },
+        { key: 'track_page_subtitle', label_ar: 'وصف صفحة التتبع', label_en: 'Tracking Page Subtitle' },
+        { key: 'track_btn', label_ar: 'زر تتبع الآن', label_en: 'Track Now Button' },
+        { key: 'step_confirmed', label_ar: 'المرحلة 1: الاعتماد', label_en: 'Step 1: Approved' },
+        { key: 'step_processing', label_ar: 'المرحلة 2: التجهيز', label_en: 'Step 2: Processing' },
+        { key: 'step_roasted', label_ar: 'المرحلة 3: التحميص والتغليف', label_en: 'Step 3: Roasted & Packed' },
+        { key: 'step_shipped', label_ar: 'المرحلة 4: خرج للتوصيل', label_en: 'Step 4: Out for Delivery' },
+        { key: 'step_completed', label_ar: 'المرحلة 5: تم التسليم', label_en: 'Step 5: Delivered' },
+      ],
+    },
+    {
+      id: 'account_auth',
+      title_ar: '8. تسجيل الدخول، حساب العميل، والتذاكر',
+      title_en: '8. Auth, Customer Account & Tickets',
+      desc_ar: 'نصوص نافذة الدخول، تبويبات الحساب، ونموذج تذاكر الدعم.',
+      desc_en: 'Sign-in modal, account tabs, and customer support ticket form.',
+      keys: [
+        { key: 'auth_title', label_ar: 'عنوان نافذة تسجيل الدخول', label_en: 'Auth Modal Title' },
+        { key: 'auth_desc', label_ar: 'وصف نافذة تسجيل الدخول', label_en: 'Auth Modal Subtitle' },
+        { key: 'account_tab_profile', label_ar: 'تبويب الملف الشخصي', label_en: 'Tab: Profile' },
+        { key: 'account_tab_addresses', label_ar: 'تبويب العناوين المحفوظة', label_en: 'Tab: Addresses' },
+        { key: 'account_tab_orders', label_ar: 'تبويب طلباتي وفواتيري', label_en: 'Tab: Orders & Invoices' },
+        { key: 'account_tab_tickets', label_ar: 'تبويب تذاكر الدعم الفني', label_en: 'Tab: Support Tickets' },
+        { key: 'new_ticket_btn', label_ar: 'عنوان فتح تذكرة جديدة', label_en: 'New Ticket Heading' },
+        { key: 'ticket_submit_btn', label_ar: 'زر إرسال التذكرة', label_en: 'Submit Ticket Button' },
+      ],
+    },
+  ];

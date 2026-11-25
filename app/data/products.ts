@@ -9,6 +9,7 @@ const FALLBACK_ORIGIN_AR: Record<string, string> = {
   Uganda: 'أوغندا',
   Indonesia: 'إندونيسيا',
   Guatemala: 'غواتيمالا',
+  'China - Yunnan': 'الصين - يونان',
 };
 
 /**
@@ -56,11 +57,11 @@ export function localizeProduct(raw: Partial<Product> & { id: string }): Product
     weight_options:
       Array.isArray(raw.weight_options) && raw.weight_options.length > 0
         ? raw.weight_options
-        : ['250g', '500g', '1kg'],
+        : ['250g'],
     grind_options:
       Array.isArray(raw.grind_options) && raw.grind_options.length > 0
         ? raw.grind_options
-        : ['Whole Bean', 'Espresso', 'Pour Over / Drip', 'French Press'],
+        : ['Whole Bean', 'Espresso', 'Pour Over / Drip'],
     bestseller: Boolean(raw.bestseller),
     created_at: raw.created_at,
   };
@@ -70,8 +71,8 @@ export const BREW_GUIDES = [
   {
     method: 'Pour Over (V60)',
     method_ar: 'التقطير اليدوي (V60)',
-    ratio: '1:15 (e.g., 20g coffee to 300g water)',
-    ratio_ar: '1:15(مثال: 20 جرام قهوة إلى 300 مل ماء)',
+    ratio: '1:16 (e.g., 20g coffee to 320g water)',
+    ratio_ar: '1:16 (مثال: 20 جرام قهوة إلى 320 مل ماء)',
     grind: 'Medium-Fine (like table salt)',
     grind_ar: 'ناعمة إلى متوسطة (مثل ملح الطعام)',
     time: '2:30 - 3:00 minutes',
@@ -80,13 +81,13 @@ export const BREW_GUIDES = [
       'Rinse paper filter with hot water and discard water.',
       'Add 20g of medium-fine coffee and tare scale.',
       'Pour 60g water for a 30-second bloom.',
-      'Pour in concentric circles up to 300g in stages. Enjoy!',
+      'Pour in concentric circles up to 320g in stages. Enjoy!',
     ],
     steps_ar: [
       'اغسل الفلتر الورقي بالماء الساخن ثم تخلص من ماء الشطف.',
       'أضف 20 جرام من القهوة المطحونة وصفر الميزان.',
       'صب 60 مل من الماء للترطيب واتركها لمدة 30 ثانية.',
-      'صب الماء بحركة دائرية على دفعات حتى تصل إلى 300 مل واستمتع بقهوتك!',
+      'صب الماء بحركة دائرية على دفعات حتى تصل إلى 320 مل واستمتع بقهوتك!',
     ],
   },
   {
